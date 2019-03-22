@@ -955,53 +955,54 @@ Mappings:
       Jvmheap: 12288m
   AWSRegionArch2AMI:
     ap-northeast-1:
-      HVM64: ami-014a2b4cee98776ed
+      HVM64: ami-06cd52961ce9f0d85
       HVMG2: NOT_SUPPORTED
     ap-northeast-2:
-      HVM64: ami-05877a464abb373e3
+      HVM64: ami-0a10b2721688ce9d2
       HVMG2: NOT_SUPPORTED
     ap-south-1:
-      HVM64: ami-089323993c9b0a6b1
+      HVM64: ami-0912f71e06545ad88
       HVMG2: NOT_SUPPORTED
     ap-southeast-1:
-      HVM64: ami-044544135e0236d49
+      HVM64: ami-08569b978cc4dfa10
       HVMG2: NOT_SUPPORTED
     ap-southeast-2:
-      HVM64: ami-05fcf371763b2abe0
+      HVM64: ami-09b42976632b27e9b
       HVMG2: NOT_SUPPORTED
     ca-central-1:
-      HVM64: ami-03c101b9aeb396b25
+      HVM64: ami-0b18956f
       HVMG2: NOT_SUPPORTED
     eu-central-1:
-      HVM64: ami-077c24ffa7fb0f400
+      HVM64: ami-0233214e13e500f77
       HVMG2: NOT_SUPPORTED
     eu-north-1:
-      HVM64: ami-0b533cc3ee31130e6
+      HVM64: ami-4abe3234
       HVMG2: NOT_SUPPORTED
     eu-west-1:
-      HVM64: ami-088e8a47d74119ce8
+      HVM64: ami-047bb4163c506cd98
       HVMG2: NOT_SUPPORTED
     eu-west-2:
-      HVM64: ami-0bfa6aed73df67983
+      HVM64: ami-f976839e
       HVMG2: NOT_SUPPORTED
     eu-west-3:
-      HVM64: ami-08c02e0fdd70685ee
+      HVM64: ami-0ebc281c20e89ba4b
       HVMG2: NOT_SUPPORTED
     sa-east-1:
-      HVM64: ami-0e90b21d5da87ee1a
+      HVM64: ami-07b14488da8ea02a0
       HVMG2: NOT_SUPPORTED
     us-east-1:
-      HVM64: ami-0420c4f9d96a55763
+      HVM64: ami-0ff8a91507f77f867
       HVMG2: NOT_SUPPORTED
     us-east-2:
-      HVM64: ami-05b2f76e617521ffd
+      HVM64: ami-0b59bfac6be064b78
       HVMG2: NOT_SUPPORTED
     us-west-1:
-      HVM64: ami-0db2eec8b0cd07966
+      HVM64: ami-0bdb828fd58c52235
       HVMG2: NOT_SUPPORTED
     us-west-2:
-      HVM64: ami-014d0c703c898c713
+      HVM64: ami-a0cfeed8
       HVMG2: NOT_SUPPORTED
+
 Resources:
   ConfluenceClusterNodeRole:
     Type: AWS::IAM::Role
@@ -1106,6 +1107,7 @@ Resources:
                     - !If [SSLScheme, "ATL_SSL_PROXY=true", !Ref "AWS::NoValue"]
                     - !If [UseSynchronyAutoScalingGroup, !Sub ["ATL_SYNCHRONY_SERVICE_URL=${Protocol}://${LoadBalancerName}/synchrony/v1", {Protocol: !If [SSLScheme, "https", "http"], LoadBalancerName: !If [UseCustomDnsName, !Ref CustomDnsName, !If [UseHostedZone, !Ref LoadBalancerCname, !If [UseCustomDnsName, !Ref CustomDnsName, !GetAtt LoadBalancer.DNSName]]]}], !Ref "AWS::NoValue"]
                     - !Sub ["ATL_AWS_STACK_NAME=${StackName}", StackName: !Ref "AWS::StackName"]
+                    - !Sub ["ATL_AWS_EFS_ID=${EFS_FS_ID}", EFS_FS_ID: !Ref ElasticFileSystem]
                     - !Sub ["ATL_AUTOLOGIN_COOKIE_AGE=${AutologinCookieAge}", AutologinCookieAge: !Ref AutologinCookieAge]
                     - !Sub ["ATL_CATALINA_OPTS=\"${CatalinaOpts} ${MailOpts}\"", { CatalinaOpts: !Ref CatalinaOpts, MailOpts: !If [DisableMail, '-Datlassian.mail.senddisabled=true -Datlassian.mail.fetchdisabled=true -Datlassian.mail.popdisabled=true -Dconfluence.disable.mailpolling=true', ''] }]
                     - !Sub ["ATL_CONFLUENCE_INSTALLER_DOWNLOAD_URL=${ConfluenceDownloadUrl}", ConfluenceDownloadUrl: !Ref ConfluenceDownloadUrl]
@@ -1145,10 +1147,15 @@ Resources:
                     - !Sub ["ATL_TOMCAT_REDIRECTPORT=${TomcatRedirectPort}", TomcatRedirectPort: !Ref TomcatRedirectPort]
                     - !Sub ["ATL_TOMCAT_SCHEME=${TomcatScheme}", TomcatScheme: !If [SSLScheme, https, http]]
                     - !Sub ["ATL_TOMCAT_SECURE=${TomcatSecure}", TomcatSecure: !If [SSLScheme, true, false]]
+                    - "ATL_ENABLED_PRODUCTS=Confluence"
+                    - "ATL_PRODUCT=confluence"
+                    - "ATL_CONFLUENCE_USER=confluence"
+                    - "ATL_CONFLUENCE_DB_NAME=confluence"
+                    - "ATL_CONFLUENCE_DB_USER=atlconfluence"
+                    - "ATL_APP_USER=confluence"
                     - "ATL_APP_DATA_MOUNT_ENABLED=false"
                     - "ATL_CONFLUENCE_DATA_CENTER=true"
                     - "ATL_DB_NAME=confluence"
-                    - "ATL_ENABLED_PRODUCTS=Confluence"
                     - "ATL_ENABLED_SHARED_HOMES="
                     - "ATL_HAZELCAST_NETWORK_AWS_TAG_KEY=Cluster"
                     - "ATL_HAZELCAST_NETWORK_AWS_HOST_HEADER=ec2.amazonaws.com"
@@ -1159,6 +1166,7 @@ Resources:
                     - "ATL_RELEASE_S3_BUCKET=atlassian-software"
                     - "ATL_RELEASE_S3_PATH=releases/confluence"
                     - "ATL_SSL_SELF_CERT_ENABLED=false"
+                    - "ATL_FORCE_INIT=true"
             /etc/cfn/cfn-hup.conf:
               content:
                 !Join
@@ -1207,39 +1215,24 @@ Resources:
               owner: root
               group: root
           commands:
-            010_make_mount_point:
-              command: mkdir -p /media/atl
+            070_create_atl_dir:
+              test: "test ! -d /opt/atlassian/"
+              command: mkdir -p /opt/atlassian
               ignoreErrors: false
-            020_add_nfs_mount:
-              command:
-                !Join
-                  - ""
-                  -
-                    - "echo "
-                    - !If
-                      - UseHostedZone
-                      - !Ref EFSCname
-                      - !Sub
-                          - $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).${ElasticFileSystem}".efs."${Region}".amazonaws.com"
-                          - ElasticFileSystem: !Ref ElasticFileSystem
-                            Region: !Ref "AWS::Region"
-                    - ":/ /media/atl nfs4 rw,vers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0 >>/etc/fstab"
-              ignoreErrors: false
-            030_mount_all:
-              command: mount -a
+            071_install_git:
+              command: yum install -y git
               ignoreErrors: true
-            040_make_shared_home_dir:
-              command: mkdir -p /media/atl/confluence/shared-home
-              ignoreErrors: false
-            050_ssm_group:
-              command: groupadd ssm-user --gid 400 || groupmod -g 400 ssm-user
-            051_ssm_user:
-              command: useradd ssm-user --uid 400 -g ssm-user || usermod -u 400 ssm-user
-            052_ensure_ssm:
-              command: yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+            072_clone_atl_scripts:
+              test: "test ! -d /opt/atlassian/atlassian-aws-deployment/"
+              # For development you can clone an explicit branch, e.g:
+              command: git clone -b DCD-226-add-support-for-base-ami-templates https://bitbucket.org/atlassian/atlassian-aws-deployment.git /opt/atlassian/atlassian-aws-deployment
+              # FIXME: Should make the branch a parameter?
+              #command: git clone https://bitbucket.org/atlassian/atlassian-aws-deployment.git /opt/atlassian/atlassian-aws-deployment
               ignoreErrors: true
-            090_bootstrap_local_ansible:
-              command: /tmp/bootstrap_local_ansible > /var/log/bootstrap_local_ansible.log 2>&1
+            080_run_atl_init_node:
+              command: cd /opt/atlassian/atlassian-aws-deployment/ami/scripts/bin && ./atl-init-node.sh
+              ignoreErrors: true
+
           services:
             sysvinit:
               cfn-hup:
@@ -1383,6 +1376,7 @@ Resources:
                   -
                     - !If [SSLScheme, "ATL_SSL_PROXY=true", !Ref "AWS::NoValue"]
                     - !Sub ["ATL_AWS_STACK_NAME=${StackName}", StackName: !Ref "AWS::StackName"]
+                    - !Sub ["ATL_AWS_EFS_ID=${EFS_FS_ID}", EFS_FS_ID: !Ref ElasticFileSystem]
                     - !Sub ["ATL_CATALINA_OPTS=\"${CatalinaOpts} ${MailOpts}\"", { CatalinaOpts: !Ref CatalinaOpts, MailOpts: !If [DisableMail, '-Datlassian.mail.senddisabled=true -Datlassian.mail.fetchdisabled=true -Datlassian.mail.popdisabled=true -Dconfluence.disable.mailpolling=true', ''] }]
                     - !Sub ["ATL_CONFLUENCE_INSTALLER_DOWNLOAD_URL=${ConfluenceDownloadUrl}", ConfluenceDownloadUrl: !Ref ConfluenceDownloadUrl]
                     - !Sub ["ATL_CONFLUENCE_VERSION=${ConfluenceVersion}", ConfluenceVersion: !Ref ConfluenceVersion]
@@ -1401,10 +1395,15 @@ Resources:
                     - !Sub ["ATL_PROXY_NAME=${AtlProxyName}", AtlProxyName: !If [UseCustomDnsName, !Ref CustomDnsName, !If [UseHostedZone, !Ref LoadBalancerCname, !GetAtt LoadBalancer.DNSName]]]
                     - !Sub ["ATL_SYNCHRONY_MEMORY=-Xmx${AtlJvmHeapSynchrony}", AtlJvmHeapSynchrony: !If [OverrideHeapSynchrony, !Ref 'JvmHeapOverrideSynchrony', '2g']]
                     - !Sub ["ATL_SYNCHRONY_SERVICE_URL=${Protocol}://${LoadBalancerName}/synchrony", {Protocol: !If [SSLScheme, "https", "http"], LoadBalancerName: !If [UseCustomDnsName, !Ref CustomDnsName, !If [UseHostedZone, !Ref LoadBalancerCname, !If [UseCustomDnsName, !Ref CustomDnsName, !GetAtt LoadBalancer.DNSName]]]}]
+                    - "ATL_ENABLED_PRODUCTS=Synchrony"
+                    - "ATL_PRODUCT=confluence"
+                    - "ATL_APP_USER=confluence"
+                    - "ATL_CONFLUENCE_USER=confluence"
+                    - "ATL_CONFLUENCE_DB_NAME=confluence"
+                    - "ATL_CONFLUENCE_DB_USER=atlconfluence"
                     - "ATL_APP_DATA_MOUNT_ENABLED=false"
                     - "ATL_CONFLUENCE_DATA_CENTER=true"
                     - "ATL_DB_NAME=confluence"
-                    - "ATL_ENABLED_PRODUCTS=Synchrony"
                     - "ATL_ENABLED_SHARED_HOMES="
                     - "ATL_HAZELCAST_NETWORK_AWS_TAG_KEY=synchrony_service"
                     - "ATL_JDBC_DRIVER=org.postgresql.Driver"
@@ -1416,6 +1415,8 @@ Resources:
                     - "ATL_SSL_SELF_CERT_ENABLED=false"
                     - "ATL_SYNCHRONY_STACK_SPACE=-Xss2048k"
                     - "ATL_SYNCHRONY_WAITING_CONFIG_TIME=20"
+                    - "ATL_FORCE_INIT=false"
+                    - "ATL_SERVICE_INIT=atl-init-synchrony"
             /etc/cfn/cfn-hup.conf:
               content:
                 !Join
@@ -1462,38 +1463,24 @@ Resources:
               owner: root
               group: root
           commands:
-            010_make_mount_point:
-              command: mkdir -p /media/atl
+            070_create_atl_dir:
+              test: "test ! -d /opt/atlassian/"
+              command: mkdir -p /opt/atlassian
               ignoreErrors: false
-            020_add_nfs_mount:
-              command:
-                !Join
-                  - ""
-                  -
-                    - "echo "
-                    - !If
-                      - UseHostedZone
-                      - !Ref EFSCname
-                      - !Sub
-                          - $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).${ElasticFileSystem}".efs."${Region}".amazonaws.com"
-                          - ElasticFileSystem: !Ref ElasticFileSystem
-                            Region: !Ref "AWS::Region"
-                    - ":/ /media/atl nfs4 rw,vers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0 >>/etc/fstab"
-              ignoreErrors: false
-            030_mount_all:
-              command: mount -a
+            071_install_git:
+              command: yum install -y git
               ignoreErrors: true
-            040_make_shared_home_dir:
-              command: mkdir -p /media/atl/confluence/shared-home
-              ignoreErrors: false
-            050_ssm_group:
-              command: groupadd ssm-user --gid 400 || groupmod -g 400 ssm-user
-            051_ssm_user:
-              command: useradd ssm-user --uid 400 -g ssm-user || usermod -u 400 ssm-user
-            052_ensure_ssm:
-              command: yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
-            090_bootstrap_local_ansible:
-              command: /tmp/bootstrap_local_ansible > /var/log/bootstrap_local_ansible.log 2>&1
+            072_clone_atl_scripts:
+              test: "test ! -d /opt/atlassian/atlassian-aws-deployment/"
+              # For development you can clone an explicit branch, e.g:
+              command: git clone -b DCD-226-add-support-for-base-ami-templates https://bitbucket.org/atlassian/atlassian-aws-deployment.git /opt/atlassian/atlassian-aws-deployment
+              # FIXME: Should make the branch a parameter?
+              #command: git clone https://bitbucket.org/atlassian/atlassian-aws-deployment.git /opt/atlassian/atlassian-aws-deployment
+              ignoreErrors: true
+            080_run_atl_init_node:
+              command: cd /opt/atlassian/atlassian-aws-deployment/ami/scripts/bin && ./atl-init-node.sh
+              ignoreErrors: true
+
           services:
             sysvinit:
               cfn-hup:
