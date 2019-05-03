@@ -107,7 +107,7 @@ Metadata:
       CustomDnsName:
         default: Existing DNS name (optional)
       DBAcquireIncrement:
-          default: DB Acquire Increment
+        default: DB Acquire Increment
       DBIdleTestPeriod:
         default: DB Idle Test Period
       DBInstanceClass:
@@ -1022,13 +1022,13 @@ Resources:
             Version: 2012-10-17
             Statement:
               - Action:
-                - 'ec2:DescribeInstances'
-                - 'route53:ListHostedZones'
-                - 'route53:ListResourceRecordSet'
+                  - 'ec2:DescribeInstances'
+                  - 'route53:ListHostedZones'
+                  - 'route53:ListResourceRecordSet'
                 Effect: Allow
                 Resource: ['*']
               - Action:
-                - "route53:ChangeResourceRecordSets"
+                  - "route53:ChangeResourceRecordSets"
                 Effect: Allow
                 Resource:
                   - "arn:aws:route53:::healthcheck/*"
@@ -1058,7 +1058,7 @@ Resources:
     Properties:
       Path: /
       Roles: [!Ref ConfluenceClusterNodeRole]
-# Confluence node config
+  # Confluence node config
   ClusterNodeGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
@@ -1080,20 +1080,21 @@ Resources:
     DependsOn:
       - EFSMountAz1
       - EFSMountAz2
-      - DB
+      #      - DB
+      - AuroraDBCluster
     Metadata:
       AWS::CloudFormation::Init:
         config:
           packages:
             !If
-              - DoCollectd
-              - yum:
-                  collectd: []
-                  collectd-java: []
-                  collectd-generic-jmx: []
-                  collectd-rrdtool: []
-                  collectd-disk: []
-              - !Ref "AWS::NoValue"
+            - DoCollectd
+            - yum:
+                collectd: []
+                collectd-java: []
+                collectd-generic-jmx: []
+                collectd-rrdtool: []
+                collectd-disk: []
+            - !Ref "AWS::NoValue"
           files:
             /etc/atl:
               mode: "000640"
@@ -1101,88 +1102,90 @@ Resources:
               group: root
               content:
                 !Join
-                  - "\n"
-                  -
-                    - !If [SSLScheme, "ATL_SSL_PROXY=true", !Ref "AWS::NoValue"]
-                    - !If [UseSynchronyAutoScalingGroup, !Sub ["ATL_SYNCHRONY_SERVICE_URL=${Protocol}://${LoadBalancerName}/synchrony/v1", {Protocol: !If [SSLScheme, "https", "http"], LoadBalancerName: !If [UseCustomDnsName, !Ref CustomDnsName, !If [UseHostedZone, !Ref LoadBalancerCname, !If [UseCustomDnsName, !Ref CustomDnsName, !GetAtt LoadBalancer.DNSName]]]}], !Ref "AWS::NoValue"]
-                    - !Sub ["ATL_AWS_STACK_NAME=${StackName}", StackName: !Ref "AWS::StackName"]
-                    - !Sub ["ATL_AUTOLOGIN_COOKIE_AGE=${AutologinCookieAge}", AutologinCookieAge: !Ref AutologinCookieAge]
-                    - !Sub ["ATL_CATALINA_OPTS=\"${CatalinaOpts} ${MailOpts}\"", { CatalinaOpts: !Ref CatalinaOpts, MailOpts: !If [DisableMail, '-Datlassian.mail.senddisabled=true -Datlassian.mail.fetchdisabled=true -Datlassian.mail.popdisabled=true -Dconfluence.disable.mailpolling=true', ''] }]
-                    - !Sub ["ATL_CONFLUENCE_INSTALLER_DOWNLOAD_URL=${ConfluenceDownloadUrl}", ConfluenceDownloadUrl: !Ref ConfluenceDownloadUrl]
-                    - !Sub ["ATL_CONFLUENCE_VERSION=${ConfluenceVersion}", ConfluenceVersion: !Ref ConfluenceVersion]
-                    - !Sub ["ATL_DB_ACQUIREINCREMENT=${DBAcquireIncrement}", DBAcquireIncrement: !Ref DBAcquireIncrement]
-                    - !Sub ["ATL_DB_HOST=${DBEndpointAddress}", DBEndpointAddress: !GetAtt DB.Endpoint.Address]
-                    - !Sub ["ATL_DB_IDLETESTPERIOD=${DBIdleTestPeriod}", DBIdleTestPeriod: !Ref DBIdleTestPeriod]
-                    - !Sub ["ATL_DB_MAXSTATEMENTS=${DBMaxStatements}", DBMaxStatements: !Ref DBMaxStatements]
-                    - !Sub ["ATL_DB_PASSWORD=${DBMasterUserPassword}", DBMasterUserPassword: !Ref DBMasterUserPassword]
-                    - !Sub ["ATL_DB_POOLMAXSIZE=${DBPoolMaxSize}", DBPoolMaxSize: !Ref DBPoolMaxSize]
-                    - !Sub ["ATL_DB_POOLMINSIZE=${DBPoolMinSize}", DBPoolMinSize: !Ref DBPoolMinSize]
-                    - !Sub ["ATL_DB_PORT=${DBEndpointPort}", DBEndpointPort: !GetAtt DB.Endpoint.Port]
-                    - !Sub ["ATL_DB_PREFERREDTESTQUERY=\"${DBPreferredTestQuery}\"", DBPreferredTestQuery: !Ref DBPreferredTestQuery]
-                    - !Sub ["ATL_DB_TIMEOUT=${DBTimeout}", DBTimeout: !Ref DBTimeout]
-                    - !Sub ["ATL_DB_VALIDATE=${DBValidate}", DBValidate: !Ref DBValidate]
-                    - !Sub ["ATL_ENVIRONMENT=${DeployEnvironment}", DeployEnvironment: !Ref DeployEnvironment]
-                    - !Sub ["ATL_HAZELCAST_NETWORK_AWS_IAM_REGION=${HazelcastAWSRegion}", HazelcastAWSRegion: !Ref "AWS::Region"]
-                    - !Sub ["ATL_HAZELCAST_NETWORK_AWS_IAM_ROLE=${ConfluenceClusterNodeRole}", ConfluenceClusterNodeRole: !Ref ConfluenceClusterNodeRole]
-                    - !Sub ["ATL_HAZELCAST_NETWORK_AWS_TAG_VALUE=${HazelcastAWSTagValue}", HazelcastAWSTagValue: !Ref "AWS::StackName"]
-                    - !Sub ["ATL_HOSTEDZONE=${HostedZone}", HostedZone: !Ref HostedZone]
-                    - !Sub ["ATL_JDBC_PASSWORD=${DBPassword}", DBPassword: !Ref DBPassword]
-                    - !Sub ["ATL_JDBC_URL=jdbc:postgresql://${DBEndpointAddress}:${DBEndpointPort}/confluence", { DBEndpointAddress: !GetAtt DB.Endpoint.Address, DBEndpointPort: !GetAtt DB.Endpoint.Port }]
-                    - !Sub ["ATL_JVM_HEAP=${AtlJvmHeap}", AtlJvmHeap: !If [OverrideHeap, !Ref 'JvmHeapOverride', !FindInMap [AWSInstanceType2Arch, !Ref ClusterNodeInstanceType, Jvmheap]]]
-                    - !Sub ["ATL_LOCALANSIBLE_REPO=${AnsibleRepo}", AnsibleRepo: !Ref LocalAnsibleGitRepo]
-                    - !Sub ["ATL_LOCALANSIBLE_SSHKEYNAME=${AnsibleKey}", AnsibleKey: !Ref LocalAnsibleGitSshKeyName]
-                    - !Sub ["ATL_PROXY_NAME=${AtlProxyName}", AtlProxyName: !If [UseCustomDnsName, !Ref CustomDnsName, !If [UseHostedZone, !Ref LoadBalancerCname, !GetAtt LoadBalancer.DNSName]]]
-                    - !Sub ["ATL_STARTCOLLECTD=${StartCollectd}", StartCollectd: !Ref StartCollectd]
-                    - !Sub ["ATL_TOMCAT_ACCEPTCOUNT=${TomcatAcceptCount}", TomcatAcceptCount: !Ref TomcatAcceptCount]
-                    - !Sub ["ATL_TOMCAT_CONNECTIONTIMEOUT=${TomcatConnectionTimeout}", TomcatConnectionTimeout: !Ref TomcatConnectionTimeout]
-                    - !Sub ["ATL_TOMCAT_CONTEXTPATH=${TomcatContextPath}", TomcatContextPath: !Ref TomcatContextPath]
-                    - !Sub ["ATL_TOMCAT_DEFAULTCONNECTORPORT=${TomcatDefaultConnectorPort}", TomcatDefaultConnectorPort: !Ref TomcatDefaultConnectorPort]
-                    - !Sub ["ATL_TOMCAT_ENABLELOOKUPS=${TomcatEnableLookups}", TomcatEnableLookups: !Ref TomcatEnableLookups]
-                    - !Sub ["ATL_TOMCAT_MAXTHREADS=${TomcatMaxThreads}", TomcatMaxThreads: !Ref TomcatMaxThreads]
-                    - !Sub ["ATL_TOMCAT_MINSPARETHREADS=${TomcatMinSpareThreads}", TomcatMinSpareThreads: !Ref TomcatMinSpareThreads]
-                    - !Sub ["ATL_TOMCAT_PROTOCOL=${TomcatProtocol}", TomcatProtocol: !Ref TomcatProtocol]
-                    - !Sub ["ATL_TOMCAT_PROXYPORT=${TomcatProxyPort}", TomcatProxyPort: !If [SSLScheme, 443, 80]]
-                    - !Sub ["ATL_TOMCAT_REDIRECTPORT=${TomcatRedirectPort}", TomcatRedirectPort: !Ref TomcatRedirectPort]
-                    - !Sub ["ATL_TOMCAT_SCHEME=${TomcatScheme}", TomcatScheme: !If [SSLScheme, https, http]]
-                    - !Sub ["ATL_TOMCAT_SECURE=${TomcatSecure}", TomcatSecure: !If [SSLScheme, true, false]]
-                    - "ATL_APP_DATA_MOUNT_ENABLED=false"
-                    - "ATL_CONFLUENCE_DATA_CENTER=true"
-                    - "ATL_DB_NAME=confluence"
-                    - "ATL_ENABLED_PRODUCTS=Confluence"
-                    - "ATL_ENABLED_SHARED_HOMES="
-                    - "ATL_HAZELCAST_NETWORK_AWS_TAG_KEY=Cluster"
-                    - "ATL_HAZELCAST_NETWORK_AWS_HOST_HEADER=ec2.amazonaws.com"
-                    - "ATL_JDBC_DRIVER=org.postgresql.Driver"
-                    - "ATL_JDBC_USER=atlconfluence"
-                    - "ATL_NGINX_ENABLED=false"
-                    - "ATL_POSTGRES_ENABLED=false"
-                    - "ATL_RELEASE_S3_BUCKET=atlassian-software"
-                    - "ATL_RELEASE_S3_PATH=releases/confluence"
-                    - "ATL_SSL_SELF_CERT_ENABLED=false"
+                - "\n"
+                -
+                  - !If [SSLScheme, "ATL_SSL_PROXY=true", !Ref "AWS::NoValue"]
+                  - !If [UseSynchronyAutoScalingGroup, !Sub ["ATL_SYNCHRONY_SERVICE_URL=${Protocol}://${LoadBalancerName}/synchrony/v1", {Protocol: !If [SSLScheme, "https", "http"], LoadBalancerName: !If [UseCustomDnsName, !Ref CustomDnsName, !If [UseHostedZone, !Ref LoadBalancerCname, !If [UseCustomDnsName, !Ref CustomDnsName, !GetAtt LoadBalancer.DNSName]]]}], !Ref "AWS::NoValue"]
+                  - !Sub ["ATL_AWS_STACK_NAME=${StackName}", StackName: !Ref "AWS::StackName"]
+                  - !Sub ["ATL_AUTOLOGIN_COOKIE_AGE=${AutologinCookieAge}", AutologinCookieAge: !Ref AutologinCookieAge]
+                  - !Sub ["ATL_CATALINA_OPTS=\"${CatalinaOpts} ${MailOpts}\"", { CatalinaOpts: !Ref CatalinaOpts, MailOpts: !If [DisableMail, '-Datlassian.mail.senddisabled=true -Datlassian.mail.fetchdisabled=true -Datlassian.mail.popdisabled=true -Dconfluence.disable.mailpolling=true', ''] }]
+                  - !Sub ["ATL_CONFLUENCE_INSTALLER_DOWNLOAD_URL=${ConfluenceDownloadUrl}", ConfluenceDownloadUrl: !Ref ConfluenceDownloadUrl]
+                  - !Sub ["ATL_CONFLUENCE_VERSION=${ConfluenceVersion}", ConfluenceVersion: !Ref ConfluenceVersion]
+                  - !Sub ["ATL_DB_ACQUIREINCREMENT=${DBAcquireIncrement}", DBAcquireIncrement: !Ref DBAcquireIncrement]
+                  #                    - !Sub ["ATL_DB_HOST=${DBEndpointAddress}", DBEndpointAddress: !GetAtt DB.Endpoint.Address]
+                  - !Sub ["ATL_DB_HOST=${DBEndpointAddress}", DBEndpointAddress: !GetAtt AuroraDBCluster.Endpoint.Address]
+                  - !Sub ["ATL_DB_IDLETESTPERIOD=${DBIdleTestPeriod}", DBIdleTestPeriod: !Ref DBIdleTestPeriod]
+                  - !Sub ["ATL_DB_MAXSTATEMENTS=${DBMaxStatements}", DBMaxStatements: !Ref DBMaxStatements]
+                  - !Sub ["ATL_DB_PASSWORD=${DBMasterUserPassword}", DBMasterUserPassword: !Ref DBMasterUserPassword]
+                  - !Sub ["ATL_DB_POOLMAXSIZE=${DBPoolMaxSize}", DBPoolMaxSize: !Ref DBPoolMaxSize]
+                  - !Sub ["ATL_DB_POOLMINSIZE=${DBPoolMinSize}", DBPoolMinSize: !Ref DBPoolMinSize]
+                  #                    - !Sub ["ATL_DB_PORT=${DBEndpointPort}", DBEndpointPort: !GetAtt DB.Endpoint.Port]
+                  - !Sub ["ATL_DB_PORT=${DBEndpointPort}", DBEndpointPort: !GetAtt AuroraDBCluster.Endpoint.Port]
+                  - !Sub ["ATL_DB_PREFERREDTESTQUERY=\"${DBPreferredTestQuery}\"", DBPreferredTestQuery: !Ref DBPreferredTestQuery]
+                  - !Sub ["ATL_DB_TIMEOUT=${DBTimeout}", DBTimeout: !Ref DBTimeout]
+                  - !Sub ["ATL_DB_VALIDATE=${DBValidate}", DBValidate: !Ref DBValidate]
+                  - !Sub ["ATL_ENVIRONMENT=${DeployEnvironment}", DeployEnvironment: !Ref DeployEnvironment]
+                  - !Sub ["ATL_HAZELCAST_NETWORK_AWS_IAM_REGION=${HazelcastAWSRegion}", HazelcastAWSRegion: !Ref "AWS::Region"]
+                  - !Sub ["ATL_HAZELCAST_NETWORK_AWS_IAM_ROLE=${ConfluenceClusterNodeRole}", ConfluenceClusterNodeRole: !Ref ConfluenceClusterNodeRole]
+                  - !Sub ["ATL_HAZELCAST_NETWORK_AWS_TAG_VALUE=${HazelcastAWSTagValue}", HazelcastAWSTagValue: !Ref "AWS::StackName"]
+                  - !Sub ["ATL_HOSTEDZONE=${HostedZone}", HostedZone: !Ref HostedZone]
+                  - !Sub ["ATL_JDBC_PASSWORD=${DBPassword}", DBPassword: !Ref DBPassword]
+                  - !Sub ["ATL_JDBC_URL=jdbc:postgresql://${DBEndpointAddress}:${DBEndpointPort}/confluence", { DBEndpointAddress: !GetAtt AuroraDBCluster.Endpoint.Address, DBEndpointPort: !GetAtt AuroraDBCluster.Endpoint.Address }]
+                  - !Sub ["ATL_JVM_HEAP=${AtlJvmHeap}", AtlJvmHeap: !If [OverrideHeap, !Ref 'JvmHeapOverride', !FindInMap [AWSInstanceType2Arch, !Ref ClusterNodeInstanceType, Jvmheap]]]
+                  - !Sub ["ATL_LOCALANSIBLE_REPO=${AnsibleRepo}", AnsibleRepo: !Ref LocalAnsibleGitRepo]
+                  - !Sub ["ATL_LOCALANSIBLE_SSHKEYNAME=${AnsibleKey}", AnsibleKey: !Ref LocalAnsibleGitSshKeyName]
+                  - !Sub ["ATL_PROXY_NAME=${AtlProxyName}", AtlProxyName: !If [UseCustomDnsName, !Ref CustomDnsName, !If [UseHostedZone, !Ref LoadBalancerCname, !GetAtt LoadBalancer.DNSName]]]
+                  - !Sub ["ATL_STARTCOLLECTD=${StartCollectd}", StartCollectd: !Ref StartCollectd]
+                  - !Sub ["ATL_TOMCAT_ACCEPTCOUNT=${TomcatAcceptCount}", TomcatAcceptCount: !Ref TomcatAcceptCount]
+                  - !Sub ["ATL_TOMCAT_CONNECTIONTIMEOUT=${TomcatConnectionTimeout}", TomcatConnectionTimeout: !Ref TomcatConnectionTimeout]
+                  - !Sub ["ATL_TOMCAT_CONTEXTPATH=${TomcatContextPath}", TomcatContextPath: !Ref TomcatContextPath]
+                  - !Sub ["ATL_TOMCAT_DEFAULTCONNECTORPORT=${TomcatDefaultConnectorPort}", TomcatDefaultConnectorPort: !Ref TomcatDefaultConnectorPort]
+                  - !Sub ["ATL_TOMCAT_ENABLELOOKUPS=${TomcatEnableLookups}", TomcatEnableLookups: !Ref TomcatEnableLookups]
+                  - !Sub ["ATL_TOMCAT_MAXTHREADS=${TomcatMaxThreads}", TomcatMaxThreads: !Ref TomcatMaxThreads]
+                  - !Sub ["ATL_TOMCAT_MINSPARETHREADS=${TomcatMinSpareThreads}", TomcatMinSpareThreads: !Ref TomcatMinSpareThreads]
+                  - !Sub ["ATL_TOMCAT_PROTOCOL=${TomcatProtocol}", TomcatProtocol: !Ref TomcatProtocol]
+                  - !Sub ["ATL_TOMCAT_PROXYPORT=${TomcatProxyPort}", TomcatProxyPort: !If [SSLScheme, 443, 80]]
+                  - !Sub ["ATL_TOMCAT_REDIRECTPORT=${TomcatRedirectPort}", TomcatRedirectPort: !Ref TomcatRedirectPort]
+                  - !Sub ["ATL_TOMCAT_SCHEME=${TomcatScheme}", TomcatScheme: !If [SSLScheme, https, http]]
+                  - !Sub ["ATL_TOMCAT_SECURE=${TomcatSecure}", TomcatSecure: !If [SSLScheme, true, false]]
+                  - "ATL_APP_DATA_MOUNT_ENABLED=false"
+                  - "ATL_CONFLUENCE_DATA_CENTER=true"
+                  - "ATL_DB_NAME=confluence"
+                  - "ATL_ENABLED_PRODUCTS=Confluence"
+                  - "ATL_ENABLED_SHARED_HOMES="
+                  - "ATL_HAZELCAST_NETWORK_AWS_TAG_KEY=Cluster"
+                  - "ATL_HAZELCAST_NETWORK_AWS_HOST_HEADER=ec2.amazonaws.com"
+                  - "ATL_JDBC_DRIVER=org.postgresql.Driver"
+                  - "ATL_JDBC_USER=atlconfluence"
+                  - "ATL_NGINX_ENABLED=false"
+                  - "ATL_POSTGRES_ENABLED=false"
+                  - "ATL_RELEASE_S3_BUCKET=atlassian-software"
+                  - "ATL_RELEASE_S3_PATH=releases/confluence"
+                  - "ATL_SSL_SELF_CERT_ENABLED=false"
             /etc/cfn/cfn-hup.conf:
               content:
                 !Join
-                  - "\n"
-                  -
-                    - "[main]"
-                    - !Sub ["region=${Region}", Region: !Ref "AWS::Region"]
-                    - !Sub ["stack=${StackId}", StackId: !Ref "AWS::StackId"]
+                - "\n"
+                -
+                  - "[main]"
+                  - !Sub ["region=${Region}", Region: !Ref "AWS::Region"]
+                  - !Sub ["stack=${StackId}", StackId: !Ref "AWS::StackId"]
               mode: "000400"
               owner: root
               group: root
             /etc/cfn/hooks.d/cfn-auto-reloader.conf:
               content:
                 !Join
-                  - "\n"
-                  -
-                    - "[cfn-auto-reloader-hook]"
-                    - triggers=post.update
-                    - "path=Resources.ClusterNodeLaunchConfig.Metadata.AWS::CloudFormation::Init"
-                    - !Sub
-                      - "action=/opt/aws/bin/cfn-init -v --stack ${StackName} --resource ClusterNodeLaunchConfig --region ${Region}"
-                      - StackName: !Ref "AWS::StackName"
-                        Region: !Ref "AWS::Region"
-                    - runas=root
+                - "\n"
+                -
+                  - "[cfn-auto-reloader-hook]"
+                  - triggers=post.update
+                  - "path=Resources.ClusterNodeLaunchConfig.Metadata.AWS::CloudFormation::Init"
+                  - !Sub
+                    - "action=/opt/aws/bin/cfn-init -v --stack ${StackName} --resource ClusterNodeLaunchConfig --region ${Region}"
+                    - StackName: !Ref "AWS::StackName"
+                      Region: !Ref "AWS::Region"
+                  - runas=root
             /tmp/bootstrap_local_ansible:
               content: !Sub |
                 #!/usr/bin/env bash
@@ -1213,17 +1216,17 @@ Resources:
             020_add_nfs_mount:
               command:
                 !Join
-                  - ""
-                  -
-                    - "echo "
-                    - !If
-                      - UseHostedZone
-                      - !Ref EFSCname
-                      - !Sub
-                          - $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).${ElasticFileSystem}".efs."${Region}".amazonaws.com"
-                          - ElasticFileSystem: !Ref ElasticFileSystem
-                            Region: !Ref "AWS::Region"
-                    - ":/ /media/atl nfs4 rw,vers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0 >>/etc/fstab"
+                - ""
+                -
+                  - "echo "
+                  - !If
+                    - UseHostedZone
+                    - !Ref EFSCname
+                    - !Sub
+                      - $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).${ElasticFileSystem}".efs."${Region}".amazonaws.com"
+                      - ElasticFileSystem: !Ref ElasticFileSystem
+                        Region: !Ref "AWS::Region"
+                  - ":/ /media/atl nfs4 rw,vers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0 >>/etc/fstab"
               ignoreErrors: false
             030_mount_all:
               command: mount -a
@@ -1268,25 +1271,25 @@ Resources:
       IamInstanceProfile: !Ref ConfluenceClusterNodeInstanceProfile
       ImageId:
         !FindInMap
-          - AWSRegionArch2AMI
-          - !Ref AWS::Region
-          - !FindInMap
-              - AWSInstanceType2Arch
-              - !Ref ClusterNodeInstanceType
-              - Arch
+        - AWSRegionArch2AMI
+        - !Ref AWS::Region
+        - !FindInMap
+          - AWSInstanceType2Arch
+          - !Ref ClusterNodeInstanceType
+          - Arch
       InstanceType: !Ref ClusterNodeInstanceType
       SecurityGroups: [!Ref SecurityGroup]
       UserData:
         Fn::Base64:
           !Join
-            - ""
-            -
-              - "#!/bin/bash -xe\n"
-              - "yum update -y aws-cfn-bootstrap\n"
-              - !Sub ["/opt/aws/bin/cfn-init -v --stack ${StackName}", StackName: !Ref "AWS::StackName"]
-              - !Sub [" --resource ClusterNodeLaunchConfig --region ${Region}\n", Region: !Ref "AWS::Region"]
-              - !Sub ["/opt/aws/bin/cfn-signal -e $? --stack ${StackName}", StackName: !Ref "AWS::StackName"]
-              - !Sub [" --resource ClusterNodeGroup --region ${Region}", Region: !Ref "AWS::Region"]
+          - ""
+          -
+            - "#!/bin/bash -xe\n"
+            - "yum update -y aws-cfn-bootstrap\n"
+            - !Sub ["/opt/aws/bin/cfn-init -v --stack ${StackName}", StackName: !Ref "AWS::StackName"]
+            - !Sub [" --resource ClusterNodeLaunchConfig --region ${Region}\n", Region: !Ref "AWS::Region"]
+            - !Sub ["/opt/aws/bin/cfn-signal -e $? --stack ${StackName}", StackName: !Ref "AWS::StackName"]
+            - !Sub [" --resource ClusterNodeGroup --region ${Region}", Region: !Ref "AWS::Region"]
   ClusterNodeScaleUpPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
@@ -1331,7 +1334,7 @@ Resources:
         - Name: AutoScalingGroupName
           Value: !Ref ClusterNodeGroup
       ComparisonOperator: LessThanThreshold
-# Synchrony node config
+  # Synchrony node config
   SynchronyClusterNodeGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Condition: UseSynchronyAutoScalingGroup
@@ -1358,20 +1361,21 @@ Resources:
     DependsOn:
       - EFSMountAz1
       - EFSMountAz2
-      - DB
+      #      - DB
+      - AuroraDBCluster
     Metadata:
       AWS::CloudFormation::Init:
         config:
           packages:
             !If
-              - DoCollectd
-              - yum:
-                  collectd: []
-                  collectd-java: []
-                  collectd-generic-jmx: []
-                  collectd-rrdtool: []
-                  collectd-disk: []
-              - !Ref AWS::NoValue
+            - DoCollectd
+            - yum:
+                collectd: []
+                collectd-java: []
+                collectd-generic-jmx: []
+                collectd-rrdtool: []
+                collectd-disk: []
+            - !Ref AWS::NoValue
           files:
             /etc/atl:
               mode: "000640"
@@ -1379,67 +1383,69 @@ Resources:
               group: root
               content:
                 !Join
-                  - "\n"
-                  -
-                    - !If [SSLScheme, "ATL_SSL_PROXY=true", !Ref "AWS::NoValue"]
-                    - !Sub ["ATL_AWS_STACK_NAME=${StackName}", StackName: !Ref "AWS::StackName"]
-                    - !Sub ["ATL_CATALINA_OPTS=\"${CatalinaOpts} ${MailOpts}\"", { CatalinaOpts: !Ref CatalinaOpts, MailOpts: !If [DisableMail, '-Datlassian.mail.senddisabled=true -Datlassian.mail.fetchdisabled=true -Datlassian.mail.popdisabled=true -Dconfluence.disable.mailpolling=true', ''] }]
-                    - !Sub ["ATL_CONFLUENCE_INSTALLER_DOWNLOAD_URL=${ConfluenceDownloadUrl}", ConfluenceDownloadUrl: !Ref ConfluenceDownloadUrl]
-                    - !Sub ["ATL_CONFLUENCE_VERSION=${ConfluenceVersion}", ConfluenceVersion: !Ref ConfluenceVersion]
-                    - !Sub ["ATL_DB_HOST=${DBEndpointAddress}", DBEndpointAddress: !GetAtt DB.Endpoint.Address]
-                    - !Sub ["ATL_DB_PASSWORD=${DBMasterUserPassword}", DBMasterUserPassword: !Ref DBMasterUserPassword]
-                    - !Sub ["ATL_DB_PORT=${DBEndpointPort}", DBEndpointPort: !GetAtt DB.Endpoint.Port]
-                    - !Sub ["ATL_HAZELCAST_NETWORK_AWS_IAM_REGION=${HazelcastAWSRegion}", HazelcastAWSRegion: !Ref "AWS::Region"]
-                    - !Sub ["ATL_HAZELCAST_NETWORK_AWS_IAM_ROLE=${ConfluenceClusterNodeRole}", ConfluenceClusterNodeRole: !Ref ConfluenceClusterNodeRole]
-                    - !Sub ["ATL_HAZELCAST_NETWORK_AWS_TAG_VALUE=${HazelcastAWSTagValue}", HazelcastAWSTagValue: !Ref "AWS::StackName"]
-                    - !Sub ["ATL_HOSTEDZONE=${HostedZone}", HostedZone: !Ref HostedZone]
-                    - !Sub ["ATL_JDBC_PASSWORD=${DBPassword}", DBPassword: !Ref DBPassword]
-                    - !Sub ["ATL_JDBC_URL=jdbc:postgresql://${DBEndpointAddress}:${DBEndpointPort}/confluence", { DBEndpointAddress: !GetAtt DB.Endpoint.Address, DBEndpointPort: !GetAtt DB.Endpoint.Port }]
-                    - !Sub ["ATL_JVM_HEAP=${AtlJvmHeap}", AtlJvmHeap: !If [OverrideHeap, !Ref 'JvmHeapOverride', !FindInMap [AWSInstanceType2Arch, !Ref ClusterNodeInstanceType, Jvmheap]]]
-                    - !Sub ["ATL_LOCALANSIBLE_REPO=${AnsibleRepo}", AnsibleRepo: !Ref LocalAnsibleGitRepo]
-                    - !Sub ["ATL_LOCALANSIBLE_SSHKEYNAME=${AnsibleKey}", AnsibleKey: !Ref LocalAnsibleGitSshKeyName]
-                    - !Sub ["ATL_PROXY_NAME=${AtlProxyName}", AtlProxyName: !If [UseCustomDnsName, !Ref CustomDnsName, !If [UseHostedZone, !Ref LoadBalancerCname, !GetAtt LoadBalancer.DNSName]]]
-                    - !Sub ["ATL_SYNCHRONY_MEMORY=-Xmx${AtlJvmHeapSynchrony}", AtlJvmHeapSynchrony: !If [OverrideHeapSynchrony, !Ref 'JvmHeapOverrideSynchrony', '2g']]
-                    - !Sub ["ATL_SYNCHRONY_SERVICE_URL=${Protocol}://${LoadBalancerName}/synchrony", {Protocol: !If [SSLScheme, "https", "http"], LoadBalancerName: !If [UseCustomDnsName, !Ref CustomDnsName, !If [UseHostedZone, !Ref LoadBalancerCname, !If [UseCustomDnsName, !Ref CustomDnsName, !GetAtt LoadBalancer.DNSName]]]}]
-                    - "ATL_APP_DATA_MOUNT_ENABLED=false"
-                    - "ATL_CONFLUENCE_DATA_CENTER=true"
-                    - "ATL_DB_NAME=confluence"
-                    - "ATL_ENABLED_PRODUCTS=Synchrony"
-                    - "ATL_ENABLED_SHARED_HOMES="
-                    - "ATL_HAZELCAST_NETWORK_AWS_TAG_KEY=synchrony_service"
-                    - "ATL_JDBC_DRIVER=org.postgresql.Driver"
-                    - "ATL_JDBC_USER=atlconfluence"
-                    - "ATL_NGINX_ENABLED=false"
-                    - "ATL_POSTGRES_ENABLED=false"
-                    - "ATL_RELEASE_S3_BUCKET=atlassian-software"
-                    - "ATL_RELEASE_S3_PATH=releases/confluence"
-                    - "ATL_SSL_SELF_CERT_ENABLED=false"
-                    - "ATL_SYNCHRONY_STACK_SPACE=-Xss2048k"
-                    - "ATL_SYNCHRONY_WAITING_CONFIG_TIME=20"
+                - "\n"
+                -
+                  - !If [SSLScheme, "ATL_SSL_PROXY=true", !Ref "AWS::NoValue"]
+                  - !Sub ["ATL_AWS_STACK_NAME=${StackName}", StackName: !Ref "AWS::StackName"]
+                  - !Sub ["ATL_CATALINA_OPTS=\"${CatalinaOpts} ${MailOpts}\"", { CatalinaOpts: !Ref CatalinaOpts, MailOpts: !If [DisableMail, '-Datlassian.mail.senddisabled=true -Datlassian.mail.fetchdisabled=true -Datlassian.mail.popdisabled=true -Dconfluence.disable.mailpolling=true', ''] }]
+                  - !Sub ["ATL_CONFLUENCE_INSTALLER_DOWNLOAD_URL=${ConfluenceDownloadUrl}", ConfluenceDownloadUrl: !Ref ConfluenceDownloadUrl]
+                  - !Sub ["ATL_CONFLUENCE_VERSION=${ConfluenceVersion}", ConfluenceVersion: !Ref ConfluenceVersion]
+                  #                    - !Sub ["ATL_DB_HOST=${DBEndpointAddress}", DBEndpointAddress: !GetAtt DB.Endpoint.Address]
+                  - !Sub ["ATL_DB_HOST=${DBEndpointAddress}", DBEndpointAddress: !GetAtt AuroraDBCluster.Endpoint.Address]
+                  - !Sub ["ATL_DB_PASSWORD=${DBMasterUserPassword}", DBMasterUserPassword: !Ref DBMasterUserPassword]
+                  #                    - !Sub ["ATL_DB_PORT=${DBEndpointPort}", DBEndpointPort: !GetAtt DB.Endpoint.Port]
+                  - !Sub ["ATL_DB_PORT=${DBEndpointPort}", DBEndpointPort: !GetAtt AuroraDBCluster.Endpoint.Port]
+                  - !Sub ["ATL_HAZELCAST_NETWORK_AWS_IAM_REGION=${HazelcastAWSRegion}", HazelcastAWSRegion: !Ref "AWS::Region"]
+                  - !Sub ["ATL_HAZELCAST_NETWORK_AWS_IAM_ROLE=${ConfluenceClusterNodeRole}", ConfluenceClusterNodeRole: !Ref ConfluenceClusterNodeRole]
+                  - !Sub ["ATL_HAZELCAST_NETWORK_AWS_TAG_VALUE=${HazelcastAWSTagValue}", HazelcastAWSTagValue: !Ref "AWS::StackName"]
+                  - !Sub ["ATL_HOSTEDZONE=${HostedZone}", HostedZone: !Ref HostedZone]
+                  - !Sub ["ATL_JDBC_PASSWORD=${DBPassword}", DBPassword: !Ref DBPassword]
+                  - !Sub ["ATL_JDBC_URL=jdbc:postgresql://${DBEndpointAddress}:${DBEndpointPort}/confluence", { DBEndpointAddress: !GetAtt AuroraDBCluster.Endpoint.Address, DBEndpointPort: !GetAtt AuroraDBCluster.Endpoint.Port }]
+                  - !Sub ["ATL_JVM_HEAP=${AtlJvmHeap}", AtlJvmHeap: !If [OverrideHeap, !Ref 'JvmHeapOverride', !FindInMap [AWSInstanceType2Arch, !Ref ClusterNodeInstanceType, Jvmheap]]]
+                  - !Sub ["ATL_LOCALANSIBLE_REPO=${AnsibleRepo}", AnsibleRepo: !Ref LocalAnsibleGitRepo]
+                  - !Sub ["ATL_LOCALANSIBLE_SSHKEYNAME=${AnsibleKey}", AnsibleKey: !Ref LocalAnsibleGitSshKeyName]
+                  - !Sub ["ATL_PROXY_NAME=${AtlProxyName}", AtlProxyName: !If [UseCustomDnsName, !Ref CustomDnsName, !If [UseHostedZone, !Ref LoadBalancerCname, !GetAtt LoadBalancer.DNSName]]]
+                  - !Sub ["ATL_SYNCHRONY_MEMORY=-Xmx${AtlJvmHeapSynchrony}", AtlJvmHeapSynchrony: !If [OverrideHeapSynchrony, !Ref 'JvmHeapOverrideSynchrony', '2g']]
+                  - !Sub ["ATL_SYNCHRONY_SERVICE_URL=${Protocol}://${LoadBalancerName}/synchrony", {Protocol: !If [SSLScheme, "https", "http"], LoadBalancerName: !If [UseCustomDnsName, !Ref CustomDnsName, !If [UseHostedZone, !Ref LoadBalancerCname, !If [UseCustomDnsName, !Ref CustomDnsName, !GetAtt LoadBalancer.DNSName]]]}]
+                  - "ATL_APP_DATA_MOUNT_ENABLED=false"
+                  - "ATL_CONFLUENCE_DATA_CENTER=true"
+                  - "ATL_DB_NAME=confluence"
+                  - "ATL_ENABLED_PRODUCTS=Synchrony"
+                  - "ATL_ENABLED_SHARED_HOMES="
+                  - "ATL_HAZELCAST_NETWORK_AWS_TAG_KEY=synchrony_service"
+                  - "ATL_JDBC_DRIVER=org.postgresql.Driver"
+                  - "ATL_JDBC_USER=atlconfluence"
+                  - "ATL_NGINX_ENABLED=false"
+                  - "ATL_POSTGRES_ENABLED=false"
+                  - "ATL_RELEASE_S3_BUCKET=atlassian-software"
+                  - "ATL_RELEASE_S3_PATH=releases/confluence"
+                  - "ATL_SSL_SELF_CERT_ENABLED=false"
+                  - "ATL_SYNCHRONY_STACK_SPACE=-Xss2048k"
+                  - "ATL_SYNCHRONY_WAITING_CONFIG_TIME=20"
             /etc/cfn/cfn-hup.conf:
               content:
                 !Join
-                  - "\n"
-                  -
-                    - "[main]"
-                    - !Sub ["region=${Region}", Region: !Ref "AWS::Region"]
-                    - !Sub ["stack=${StackId}", StackId: !Ref "AWS::StackId"]
+                - "\n"
+                -
+                  - "[main]"
+                  - !Sub ["region=${Region}", Region: !Ref "AWS::Region"]
+                  - !Sub ["stack=${StackId}", StackId: !Ref "AWS::StackId"]
               mode: "000400"
               owner: root
               group: root
             /etc/cfn/hooks.d/cfn-auto-reloader.conf:
               content:
                 !Join
-                  - "\n"
-                  -
-                    - "[cfn-auto-reloader-hook]"
-                    - triggers=post.update
-                    - "path=Resources.SynchronyClusterNodeLaunchConfig.Metadata.AWS::CloudFormation::Init"
-                    - !Sub
-                      - "action=/opt/aws/bin/cfn-init -v --stack ${StackName} --resource SynchronyClusterNodeLaunchConfig --region ${Region}"
-                      - StackName: !Ref "AWS::StackName"
-                        Region: !Ref "AWS::Region"
-                    - runas=root
+                - "\n"
+                -
+                  - "[cfn-auto-reloader-hook]"
+                  - triggers=post.update
+                  - "path=Resources.SynchronyClusterNodeLaunchConfig.Metadata.AWS::CloudFormation::Init"
+                  - !Sub
+                    - "action=/opt/aws/bin/cfn-init -v --stack ${StackName} --resource SynchronyClusterNodeLaunchConfig --region ${Region}"
+                    - StackName: !Ref "AWS::StackName"
+                      Region: !Ref "AWS::Region"
+                  - runas=root
             /tmp/bootstrap_local_ansible:
               content: !Sub |
                 #!/usr/bin/env bash
@@ -1468,17 +1474,17 @@ Resources:
             020_add_nfs_mount:
               command:
                 !Join
-                  - ""
-                  -
-                    - "echo "
-                    - !If
-                      - UseHostedZone
-                      - !Ref EFSCname
-                      - !Sub
-                          - $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).${ElasticFileSystem}".efs."${Region}".amazonaws.com"
-                          - ElasticFileSystem: !Ref ElasticFileSystem
-                            Region: !Ref "AWS::Region"
-                    - ":/ /media/atl nfs4 rw,vers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0 >>/etc/fstab"
+                - ""
+                -
+                  - "echo "
+                  - !If
+                    - UseHostedZone
+                    - !Ref EFSCname
+                    - !Sub
+                      - $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).${ElasticFileSystem}".efs."${Region}".amazonaws.com"
+                      - ElasticFileSystem: !Ref ElasticFileSystem
+                        Region: !Ref "AWS::Region"
+                  - ":/ /media/atl nfs4 rw,vers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 0 0 >>/etc/fstab"
               ignoreErrors: false
             030_mount_all:
               command: mount -a
@@ -1520,25 +1526,25 @@ Resources:
       IamInstanceProfile: !Ref ConfluenceClusterNodeInstanceProfile
       ImageId:
         !FindInMap
-          - AWSRegionArch2AMI
-          - !Ref AWS::Region
-          - !FindInMap
-              - AWSInstanceType2Arch
-              - !Ref SynchronyNodeInstanceType
-              - Arch
+        - AWSRegionArch2AMI
+        - !Ref AWS::Region
+        - !FindInMap
+          - AWSInstanceType2Arch
+          - !Ref SynchronyNodeInstanceType
+          - Arch
       InstanceType: !Ref SynchronyNodeInstanceType
       SecurityGroups: [!Ref SecurityGroup]
       UserData:
         Fn::Base64:
           !Join
-            - ""
-            -
-              - "#!/bin/bash -xe\n"
-              - "yum update -y aws-cfn-bootstrap\n"
-              - !Sub ["/opt/aws/bin/cfn-init -v --stack ${StackName}", StackName: !Ref "AWS::StackName"]
-              - !Sub [" --resource SynchronyClusterNodeLaunchConfig --region ${Region}\n", Region: !Ref "AWS::Region"]
-              - !Sub ["/opt/aws/bin/cfn-signal -e $? --stack ${StackName}", StackName: !Ref "AWS::StackName"]
-              - !Sub [" --resource SynchronyClusterNodeGroup --region ${Region}", Region: !Ref "AWS::Region"]
+          - ""
+          -
+            - "#!/bin/bash -xe\n"
+            - "yum update -y aws-cfn-bootstrap\n"
+            - !Sub ["/opt/aws/bin/cfn-init -v --stack ${StackName}", StackName: !Ref "AWS::StackName"]
+            - !Sub [" --resource SynchronyClusterNodeLaunchConfig --region ${Region}\n", Region: !Ref "AWS::Region"]
+            - !Sub ["/opt/aws/bin/cfn-signal -e $? --stack ${StackName}", StackName: !Ref "AWS::StackName"]
+            - !Sub [" --resource SynchronyClusterNodeGroup --region ${Region}", Region: !Ref "AWS::Region"]
   SynchronyClusterNodeScaleUpPolicy:
     Type: "AWS::AutoScaling::ScalingPolicy"
     Condition: UseSynchronyAutoScalingGroup
@@ -1587,7 +1593,7 @@ Resources:
         - Name: AutoScalingGroupName
           Value: !Ref SynchronyClusterNodeGroup
       ComparisonOperator: LessThanThreshold
-# Elastic file system
+  # Elastic file system
   ElasticFileSystem:
     Type: AWS::EFS::FileSystem
     Properties:
@@ -1619,32 +1625,84 @@ Resources:
       TTL: 900
       ResourceRecords:
         - !Join ['.', [!Ref ElasticFileSystem, 'efs', !Ref 'AWS::Region', 'amazonaws.com.']]
-# Database
-  DB:
-    Type: AWS::RDS::DBInstance
-    Properties:
-      AllocatedStorage: !Ref DBStorage
-      DBInstanceClass: !Ref DBInstanceClass
-      DBInstanceIdentifier: !Ref AWS::StackName
-      DBSubnetGroupName: !Ref DBSubnetGroup
-      Engine: postgres
-      EngineVersion: 9.6
-      Iops: !If [DBProvisionedIops, !Ref DBIops, !Ref 'AWS::NoValue']
-      KmsKeyId: !If [UseDatabaseEncryption, !GetAtt EncryptionKey.Arn, !Ref 'AWS::NoValue']
-      MasterUsername: postgres
-      MasterUserPassword: !If [DoSetDBMasterUserPassword, !Ref DBMasterUserPassword, !Ref 'AWS::NoValue']
-      MultiAZ: !Ref DBMultiAZ
-      StorageEncrypted: !If [UseDatabaseEncryption, !Ref DBStorageEncrypted, !Ref 'AWS::NoValue']
-      StorageType: !If [DBProvisionedIops, io1, gp2]
-      Tags:
-        - Key: Name
-          Value: !Sub ["${StackName} Confluence PostgreSQL Database", StackName: !Ref 'AWS::StackName']
-      VPCSecurityGroups: [!Ref SecurityGroup]
-  DBSubnetGroup:
+  # Database
+  #  DB:
+  #    Type: AWS::RDS::DBInstance
+  #    Properties:
+  #      AllocatedStorage: !Ref DBStorage
+  #      DBInstanceClass: !Ref DBInstanceClass
+  #      DBInstanceIdentifier: !Ref AWS::StackName
+  #      DBSubnetGroupName: !Ref DBSubnetGroup
+  #      Engine: postgres
+  #      EngineVersion: 9.6
+  #      Iops: !If [DBProvisionedIops, !Ref DBIops, !Ref 'AWS::NoValue']
+  #      KmsKeyId: !If [UseDatabaseEncryption, !GetAtt EncryptionKey.Arn, !Ref 'AWS::NoValue']
+  #      MasterUsername: postgres
+  #      MasterUserPassword: !If [DoSetDBMasterUserPassword, !Ref DBMasterUserPassword, !Ref 'AWS::NoValue']
+  #      MultiAZ: !Ref DBMultiAZ
+  #      StorageEncrypted: !If [UseDatabaseEncryption, !Ref DBStorageEncrypted, !Ref 'AWS::NoValue']
+  #      StorageType: !If [DBProvisionedIops, io1, gp2]
+  #      Tags:
+  #        - Key: Name
+  #          Value: !Sub ["${StackName} Confluence PostgreSQL Database", StackName: !Ref 'AWS::StackName']
+  #      VPCSecurityGroups: [!Ref SecurityGroup]
+  #  DBSubnetGroup:
+  #    Type: AWS::RDS::DBSubnetGroup
+  #    Properties:
+  #      DBSubnetGroupDescription: DBSubnetGroup
+  #      SubnetIds: !Split [ ",", !ImportValue ATL-PriNets]
+  AuroraDBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
-      DBSubnetGroupDescription: DBSubnetGroup
+      DBSubnetGroupDescription: Subnets available for the Amazon Aurora database instance
       SubnetIds: !Split [ ",", !ImportValue ATL-PriNets]
+  AuroraDBCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      DatabaseName: "confluence"
+      Engine: aurora-postgresql
+      MasterUsername: postgres
+      MasterUserPassword: !If [DoSetDBMasterUserPassword, !Ref DBMasterUserPassword, !Ref 'AWS::NoValue']
+      #      TODO: Variable here?
+      BackupRetentionPeriod: 7
+      DBSubnetGroupName: !Ref AuroraDBSubnetGroup
+      DBClusterParameterGroupName: default.aurora-postgresql9.6
+      Port: 5432
+      VpcSecurityGroupIds:
+        - !Ref SecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub AuroraDB-${AWS::StackName}
+  AuroraDB1:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: aurora-postgresql
+      DBClusterIdentifier: !Ref AuroraDBCluster
+      DBInstanceClass: !Ref DBInstanceClass
+      Iops:
+        !If
+        - DBProvisionedIops
+        - !Ref DBIops
+        - !Ref AWS::NoValue
+      Tags:
+        - Key: Name
+          Value: !Sub AuroraDB-${AWS::StackName}
+  AuroraDB2:
+    Type: AWS::RDS::DBInstance
+    #   MultiAZ by Default
+    #    Condition: IsDBMultiAZ
+    Properties:
+      Engine: aurora-postgresql
+      DBClusterIdentifier: !Ref AuroraDBCluster
+      DBInstanceClass: !Ref DBInstanceClass
+      Iops:
+        !If
+        - DBProvisionedIops
+        - !Ref DBIops
+        - !Ref AWS::NoValue
+      Tags:
+        - Key: Name
+          Value: !Sub AuroraDB-${AWS::StackName}
   DBCname:
     Condition: UseHostedZone
     Type: AWS::Route53::RecordSet
@@ -1655,8 +1713,10 @@ Resources:
       Type: CNAME
       TTL: 900
       ResourceRecords:
-        - !GetAtt DB.Endpoint.Address
-# Loadbalancer
+        #        - !GetAtt DB.Endpoint.Address
+        - !GetAtt AuroraDBCluster.Endpoint.Address
+
+  # Loadbalancer
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -1677,9 +1737,9 @@ Resources:
       Certificates:
         - CertificateArn:
             !If
-              - DoSSL
-              - !Ref SSLCertificateARN
-              - !Ref AWS::NoValue
+            - DoSSL
+            - !Ref SSLCertificateARN
+            - !Ref AWS::NoValue
       DefaultActions:
         - Type: forward
           TargetGroupArn: !Ref MainTargetGroup
@@ -1832,6 +1892,12 @@ Resources:
       AliasName: !Sub "alias/${AWS::StackName}"
       TargetKeyId: !Ref EncryptionKey
 Outputs:
+  RDSEndPoints:
+    Description: Full Amazon Aurora Writer endpoint
+    Value: !Sub
+      - "${DBAddress}:${DBPort}"
+      - DBAddress: AuroraDBCluster.Endpoint.Address
+        DBPort: AuroraDBCluster.Endpoint.Port
   ServiceURL:
     Description: The URL to access this Atlassian service
     Value: !If
@@ -1864,10 +1930,11 @@ Outputs:
     Value: !Ref SecurityGroup
     Export: {
       Name: !Join ['', [!Ref 'AWS::StackName', '-SGname']]
-      }
+    }
   DBEndpointAddress:
     Description: The Database Connection String
-    Value: !GetAtt DB.Endpoint.Address
+    #    Value: !GetAtt DB.Endpoint.Address
+    Value: !GetAtt AuroraDBCluster.Endpoint.Address
   DBEncryptionKey:
     Condition: UseDatabaseEncryption
     Description: The alias of the encryption key created for RDS
@@ -1880,7 +1947,7 @@ Outputs:
       - !Ref ElasticFileSystem
     Export: {
       Name: !Join ['', [!Ref 'AWS::StackName', '-EFSCname']]
-      }
+    }
   ConfluenceTargetGroupARN:
     Description: The name of the load balancer of Confluence cluster nodes
     Value: !Ref MainTargetGroup
