@@ -1,0 +1,849 @@
+Parameters:
+  ClusterNodeMin:
+    Default: 1
+    Description: 'Set to 1 for new deployment. Can be updated post launch.'
+    Type: Number
+  ClusterNodeMax:
+    Description: 'Maximum number of nodes in the cluster.'
+    Default: 1
+    Type: Number
+  MainTargetGroup:
+    Description: 'ARN of the Load Balancing target group to attach the ASG to'
+    Type: String
+  SubnetIDs:
+    Description: 'Subnets to deploy the application nodes in. Note: You must specify 2 subnets here; 
+      if more are specified, only the first 2 will be used.'
+    Type: List<AWS::EC2::Subnet::Id>
+  ElasticFileSystem:
+    Description: 'ID of the EFS to mount the node to'
+    Type: String
+  AutologinCookieAge:
+    Default: ''
+    Description: 'Sets the Remember Me (autologin) cookie expiry length in seconds. If blank this defaults to 1 year.'
+    Type: String
+  CatalinaOpts:
+    Default: ''
+    Description: 'Pass in any additional JVM options to tune Catalina Tomcat.'
+    Type: String
+  DBEngine:
+    Default: 'PostgreSQL'
+    Description: 'Database Engine to use. PostgreSQL or Amazon Aurora Clustered PostgreSQL'
+    AllowedValues:
+      - 'Amazon Aurora PostgreSQL'
+      - 'PostgreSQL'
+    ConstraintDescription: Must be 'PostgreSQL' or 'Amazon Aurora PostgreSQL'.
+    Type: String
+  DBEndpointAddress:
+    Description: 'URL of the database endpoint'
+    Type: String
+  DBIdleTestPeriod:
+    Default: 100
+    Description: If greater than 0, this is the frequency (in seconds) that c3po will test all idle, pooled but unchecked-out connections.
+    Type: String
+  DBMaxStatements:
+    Default: 0
+    Description: "The size of c3p0's global PreparedStatement cache. It controls the total number of Statements cached, for all Connections. If set, it should be a fairly large number, as each pooled Connection requires its own, distinct flock of cached statements."
+    Type: String
+  DBMasterUserPassword:
+    AllowedPattern: '(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*'
+    ConstraintDescription: "Must be at least 8 characters and include 1 uppercase, 1 lowercase, 1 number, 1 (non / @ \" ') symbol"
+    Description: "Password for the master ('postgres') account. Must be at least 8 characters and include 1 uppercase, 1 lowercase, 1 number, 1 (non / @ \" ') symbol."
+    MinLength: 8
+    MaxLength: 128
+    NoEcho: true
+    Type: String
+  DBPoolMaxSize:
+    Default: 60
+    Description: 'The maximum number of database connections that can be opened at any time. See https://confluence.atlassian.com/doc/performance-tuning-130289.html for reference on tuning database parameters.'
+    Type: String
+  DBPoolMinSize:
+    Default: 20
+    Description: 'The minimum number of idle database connections that are kept open at any time.'
+    Type: String
+  RDSEndPointPort:
+    Default: 5432
+    Description: 'The port the database is listening for connections on'
+    Type: String
+  DBPreferredTestQuery:
+    Default: 'select version();'
+    Description: 'The query that will be executed for all connection tests.'
+    Type: String
+  DBTimeout:
+    Default: 30
+    Description: 'Seconds a connection can remain pooled but unused before being discarded. Zero means idle connections never expire.'
+    Type: String
+  DBValidate:
+    Default: false
+    Description: 'If true, a connection test will be performed at every connection checkout to verify that the connection is valid.'
+    Type: String
+  ApplicationClusterNodeRole:
+    Description: 'Name of the IAM role contained in the application node instance profile'
+    Type: String
+  HostedZone:
+    Description: Private hosted zone to create CNAME records in
+    Type: String
+  DBPassword:
+    AllowedPattern: '(?=^.{6,255}$)((?=.*\\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*'
+    ConstraintDescription: "Must be at least 8 characters and include 1 uppercase, 1 lowercase, 1 number, 1 (non / @ ) \" ') symbol"
+    Description: "Password for the user account. Must be at least 8 characters and include 1 uppercase, 1 lowercase, 1 number, 1 (non / @ \" ') symbol."
+    MinLength: 8
+    MaxLength: 128
+    NoEcho: true
+    Type: String
+  ClusterNodeInstanceType:
+    Default: c5.xlarge
+    AllowedValues:
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.9xlarge
+      - c5.18xlarge
+      - c5d.large
+      - c5d.xlarge
+      - c5d.2xlarge
+      - c5d.4xlarge
+      - c5d.9xlarge
+      - c5d.18xlarge
+      - d2.xlarge
+      - d2.2xlarge
+      - d2.4xlarge
+      - d2.8xlarge
+      - h1.2xlarge
+      - h1.4xlarge
+      - h1.8xlarge
+      - h1.16xlarge
+      - i3.large
+      - i3.xlarge
+      - i3.2xlarge
+      - i3.4xlarge
+      - i3.8xlarge
+      - i3.16xlarge
+      - i3.metal
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m4.16xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.12xlarge
+      - m5.24xlarge
+      - m5d.large
+      - m5d.xlarge
+      - m5d.2xlarge
+      - m5d.4xlarge
+      - m5d.12xlarge
+      - m5d.24xlarge
+      - r4.large
+      - r4.xlarge
+      - r4.2xlarge
+      - r4.4xlarge
+      - r4.8xlarge
+      - r4.16xlarge
+      - r5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.12xlarge
+      - r5.24xlarge
+      - r5d.large
+      - r5d.xlarge
+      - r5d.2xlarge
+      - r5d.4xlarge
+      - r5d.12xlarge
+      - r5d.24xlarge
+      - t2.medium
+      - t2.large
+      - t2.xlarge
+      - t2.2xlarge
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - x1.16xlarge
+      - x1.32xlarge
+      - x1e.xlarge
+      - x1e.2xlarge
+      - x1e.4xlarge
+      - x1e.8xlarge
+      - x1e.16xlarge
+      - x1e.32xlarge
+      - z1d.large
+      - z1d.xlarge
+      - z1d.2xlarge
+      - z1d.3xlarge
+      - z1d.6xlarge
+      - z1d.12xlarge
+    ConstraintDescription: Must be an EC2 instance type from the selection list
+    Description: Instance type for the cluster application nodes (note - for "synchrony-local" collaborative editing you must chose an instance size with over 5 GB RAM).
+    Type: String
+  TomcatAcceptCount:
+    Default: 10
+    Description: The maximum queue length for incoming connection requests when all possible request processing threads are in use.
+    Type: String
+  TomcatConnectionTimeout:
+    Default: 20000
+    Description: The number of milliseconds this Connector will wait, after accepting a connection, for the request URI line to be presented.
+    Type: String
+  TomcatContextPath:
+    Default: ''
+    AllowedPattern: '^(\/[A-z_\-0-9\.]+)?$'
+    Description: The context path of this web application, which is matched against the beginning of each request URI to select the appropriate web application for processing. If used, must include leading "/".  See http://tomcat.apache.org/tomcat-8.0-doc/config/http.html for reference on tuning tomcat parameters.
+    Type: String
+  TomcatDefaultConnectorPort:
+    Default: 8080
+    Description: The port on which to serve the application.
+    Type: String
+  TomcatEnableLookups:
+    Default: false
+    Description: Set to true if you want calls to request.getRemoteHost() to perform DNS lookups in order to return the actual host name of the remote client.
+    Type: String
+  TomcatMaxThreads:
+    Default: 48
+    Description: The maximum number of request processing threads to be created by this Connector, which therefore determines the maximum number of simultaneous requests that can be handled.
+    Type: String
+  TomcatMinSpareThreads:
+    Default: 10
+    Description: The minimum number of threads always kept running.
+    Type: String
+  TomcatProtocol:
+    Default: 'HTTP/1.1'
+    Description: Sets the protocol to handle incoming traffic.
+    Type: String
+  TomcatRedirectPort:
+    Default: 8443
+    Description: The port number for Catalina to use when automatically redirecting a non-SSL connector actioning a redirect to a SSL URI.
+    Type: String
+  TomcatScheme:
+    Default: http
+    Description: "The name of the protocol you wish to have returned, ie 'https' for an SSL Connector. The value of this setting also configures Tomcat's proxy port (443/80) and secure (true/false) settings appropriately."
+    Type: String
+    AllowedValues: [http, https]
+  CustomDnsName:
+    Default: ''
+    Description: '(Optional) Use custom existing DNS name for your Data Center instance. This will take precedence over HostedZone. Please note: you must own the domain and configure it to point at the load balancer.'
+    Type: String
+  MailEnabled:
+    AllowedValues:
+      - true
+      - false
+    ConstraintDescription: Must be 'true' or 'false'.
+    Default: true
+    Description: Enable mail processing and sending.
+    Type: String
+  ProductVersion:
+    AllowedPattern: '(\d+\.\d+\.\d+(-?.*))'
+    ConstraintDescription: "Must be a valid product version number."
+    Description: The version of the prodfuct to install.
+    Type: String
+  DeploymentAutomationRepository:
+    Default: 'https://bitbucket.org/atlassian/dc-deployments-automation.git'
+    Type: String
+    Description: The deployment automation repository to use for per-node initialisation. Leave this as default unless you have customizations.
+  DeploymentAutomationBranch:
+    Default: "master"
+    Type: String
+    Description: The deployment automation repository branch to pull from.
+  DeploymentAutomationPlaybook:
+    Default: "aws_&{product}_dc_node.yml"
+    Type: String
+    Description: The Ansible playbook to invoke to initialize the application node on first start.
+  DeploymentAutomationKeyName:
+    Default: ""
+    Type: String
+    Description: (Optional) Named KeyPair name to use with this repository. The key should be imported into the SSM parameter store.
+  ApplicationClusterNodeInstanceProfile:
+    Type: String
+    Description: Name of the IAM instance profile to apply to the nodes
+  SecurityGroup:
+    Description: "Security group to apply to the cluster nodes"
+    Type: AWS::EC2::SecurityGroup::Id
+  LoadBalancerCname:
+    Description: "A custom domain name that has been set for your load balancer"
+    Type: "String"
+
+Conditions:
+  DBEngineAurora:
+    !Equals [%{DBEngine}, "Amazon Aurora PostgreSQL"]
+  DBEnginePostgres:
+    !Equals [%{DBEngine}, "PostgreSQL"]
+  SSLScheme:
+    !Equals [%{TomcatScheme}, 'https']
+  OverrideHeap:
+    !Not [!Equals [%{JvmHeapOverride}, '']]
+  UseCustomDnsName:
+    !Not [!Equals [%{CustomDnsName}, '']]
+  DisableMail:
+    !Not [!Equals [%{MailEnabled}, true]]
+  UseHostedZone:
+    !Not [!Equals [%{LoadBalancerCname}, '']]
+
+Mappings:
+  AWSInstanceType2Arch:
+    c4.xlarge:
+      Arch: HVM64
+      Jvmheap: 4608m
+    c4.2xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    c4.4xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    c4.8xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    c5.large:
+      Arch: HVM64
+      Jvmheap: 2048m
+    c5.xlarge:
+      Arch: HVM64
+      Jvmheap: 5120m
+    c5.2xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    c5.4xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    c5.9xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    c5.18xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    c5d.large:
+      Arch: HVM64
+      Jvmheap: 2048m
+    c5d.xlarge:
+      Arch: HVM64
+      Jvmheap: 5120m
+    c5d.2xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    c5d.4xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    c5d.9xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    c5d.18xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    d2.xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    d2.2xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    d2.4xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    d2.8xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    h1.2xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    h1.4xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    h1.8xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    h1.16xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    i3.large:
+      Arch: HVM64
+      Jvmheap: 12288m
+    i3.xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    i3.2xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    i3.4xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    i3.8xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    i3.16xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    i3.metal:
+      Arch: HVM64
+      Jvmheap: 12288m
+    m4.large:
+      Arch: HVM64
+      Jvmheap: 5120m
+    m4.xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    m4.2xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    m4.4xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    m4.10xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    m4.16xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    m5.large:
+      Arch: HVM64
+      Jvmheap: 5120m
+    m5.xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    m5.2xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    m5.4xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    m5.12xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    m5.24xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    m5d.large:
+      Arch: HVM64
+      Jvmheap: 5120m
+    m5d.xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    m5d.2xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    m5d.4xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    m5d.12xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    m5d.24xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r4.large:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r4.xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r4.2xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r4.4xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r4.8xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r4.16xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r5.large:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r5.xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r5.2xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r5.4xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r5.12xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r5.24xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r5d.large:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r5d.xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r5d.2xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r5d.4xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r5d.12xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    r5d.24xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    t2.medium:
+      Arch: HVM64
+      Jvmheap: 2048m
+    t2.large:
+      Arch: HVM64
+      Jvmheap: 5120m
+    t2.xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    t2.2xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    t3.medium:
+      Arch: HVM64
+      Jvmheap: 2048m
+    t3.large:
+      Arch: HVM64
+      Jvmheap: 5120m
+    t3.xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    t3.2xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    x1.16xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    x1.32xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    x1e.xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    x1e.2xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    x1e.4xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    x1e.8xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    x1e.16xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    x1e.32xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    z1d.large:
+      Arch: HVM64
+      Jvmheap: 12288m
+    z1d.xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    z1d.2xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    z1d.3xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    z1d.6xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+    z1d.12xlarge:
+      Arch: HVM64
+      Jvmheap: 12288m
+
+  AWSRegionArch2AMI:
+    ap-northeast-1:
+      HVM64: ami-00d101850e971728d
+      HVMG2: NOT_SUPPORTED
+    ap-northeast-2:
+      HVM64: ami-08ab3f7e72215fe91
+      HVMG2: NOT_SUPPORTED
+    ap-south-1:
+      HVM64: ami-00e782930f1c3dbc7
+      HVMG2: NOT_SUPPORTED
+    ap-southeast-1:
+      HVM64: ami-0b5a47f8865280111
+      HVMG2: NOT_SUPPORTED
+    ap-southeast-2:
+      HVM64: ami-0fb7513bcdc525c3b
+      HVMG2: NOT_SUPPORTED
+    ca-central-1:
+      HVM64: ami-08a9b721ecc5b0a53
+      HVMG2: NOT_SUPPORTED
+    eu-central-1:
+      HVM64: ami-0ebe657bc328d4e82
+      HVMG2: NOT_SUPPORTED
+    eu-north-1:
+      HVM64: ami-1fb13961
+      HVMG2: NOT_SUPPORTED
+    eu-west-1:
+      HVM64: ami-030dbca661d402413
+      HVMG2: NOT_SUPPORTED
+    eu-west-2:
+      HVM64: ami-0009a33f033d8b7b6
+      HVMG2: NOT_SUPPORTED
+    eu-west-3:
+      HVM64: ami-0ebb3a801d5fb8b9b
+      HVMG2: NOT_SUPPORTED
+    sa-east-1:
+      HVM64: ami-058141e091292ecf0
+      HVMG2: NOT_SUPPORTED
+    us-east-1:
+      HVM64: ami-0c6b1d09930fac512
+      HVMG2: NOT_SUPPORTED
+    us-east-2:
+      HVM64: ami-0ebbf2179e615c338
+      HVMG2: NOT_SUPPORTED
+    us-west-1:
+      HVM64: ami-015954d5e5548d13b
+      HVMG2: NOT_SUPPORTED
+    us-west-2:
+      HVM64: ami-0cb72367e98845d43
+      HVMG2: NOT_SUPPORTED
+
+Resources:
+  ClusterNodeGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      DesiredCapacity: %{ClusterNodeMin}
+      LaunchConfigurationName: !Ref ClusterNodeLaunchConfig
+      MinSize: %{ClusterNodeMin}
+      MaxSize: %{ClusterNodeMax}
+      TargetGroupARNs: [%{MainTargetGroup}]
+      VPCZoneIdentifier: !Split [ ",", %{SubnetIDs}]
+      Tags:
+        - Key: Name
+          Value: !Sub ["${StackName} &{product} Node", StackName: !Ref 'AWS::StackName']
+          PropagateAtLaunch: true
+        - Key: Cluster
+          Value: !Ref AWS::StackName
+          PropagateAtLaunch: true
+  ClusterNodeLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    DependsOn:
+      - &{EFSMountAz1}
+      - &{EFSMountAz2}
+      - &{DB}
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+
+          files:
+            /etc/atl:
+              mode: "000640"
+              owner: root
+              group: root
+              content:
+                !Join
+                  - "\n"
+                  -
+                    - "ATL_PRODUCT_FAMILY=&{product}"
+                    - "ATL_JDBC_DRIVER=org.postgresql.Driver"
+                    - "ATL_JDBC_DB_NAME=&{product}"
+                    - "ATL_JDBC_USER=&{product}"
+                    - "ATL_APP_DATA_MOUNT_ENABLED=false"
+                    - "ATL_&{product}_DATA_CENTER=true"
+                    - "ATL_ENABLED_PRODUCTS=&{product}"
+                    - "ATL_ENABLED_SHARED_HOMES="
+                    - "ATL_HAZELCAST_NETWORK_AWS_TAG_KEY=Cluster"
+                    - "ATL_HAZELCAST_NETWORK_AWS_HOST_HEADER=ec2.amazonaws.com"
+                    - "ATL_RELEASE_S3_BUCKET=atlassian-software"
+                    - "ATL_RELEASE_S3_PATH=releases/&{product}"
+                    - "ATL_SSL_SELF_CERT_ENABLED=false"
+                    - ""
+                    - !Sub ["ATL_PRODUCT_VERSION=${ProductVersion}", ProductVersion: !Ref %{ProductVersion}]
+                    - !Sub ["ATL_EFS_ID=${ElasticFileSystem}", ElasticFileSystem: %{ElasticFileSystem}]
+                    - !If [SSLScheme, "ATL_SSL_PROXY=true", !Ref "AWS::NoValue"]
+                    - !If [UseSynchronyAutoScalingGroup, !Sub ["ATL_SYNCHRONY_SERVICE_URL=${Protocol}://${LoadBalancerName}/synchrony/v1", {Protocol: !If [SSLScheme, "https", "http"], LoadBalancerName: !If [UseCustomDnsName, %{CustomDnsName}, !If [UseHostedZone, %{LoadBalancerCname}, &{LoadBalancerDNSName}]}]], !Ref "AWS::NoValue"]
+                    - !Sub ["ATL_AWS_STACK_NAME=${StackName}", StackName: !Ref "AWS::StackName"]
+                    - !Sub ["ATL_AUTOLOGIN_COOKIE_AGE=${AutologinCookieAge}", AutologinCookieAge: %{AutologinCookieAge}]
+                    - !Sub ["ATL_CATALINA_OPTS=\"${CatalinaOpts} ${MailOpts}\"", { CatalinaOpts: %{CatalinaOpts}, MailOpts: !If [DisableMail, '-Datlassian.mail.senddisabled=true -Datlassian.mail.fetchdisabled=true -Datlassian.mail.popdisabled=true -D&{product}.disable.mailpolling=true', ''] }]
+                    - !Sub ["ATL_DB_ACQUIREINCREMENT=${DBAcquireIncrement}", DBAcquireIncrement: !Ref DBAcquireIncrement]
+                    - !Sub ["ATL_DB_ENGINE=${DBEngine}", DBEngine: !If [DBEngineAurora, aurora_postgres, !If [DBEnginePostgres, rds_postgres, '']]]
+                    - !Sub ["ATL_DB_HOST=${DBEndpointAddress}", DBEndpointAddress: %{DBEndpointAddress}]
+                    - !Sub ["ATL_DB_IDLETESTPERIOD=${DBIdleTestPeriod}", DBIdleTestPeriod: %{DBIdleTestPeriod}]
+                    - !Sub ["ATL_DB_MAXSTATEMENTS=${DBMaxStatements}", DBMaxStatements: %{DBMaxStatements}]
+                    - !Sub ["ATL_DB_ROOT_PASSWORD='${DBMasterUserPassword}'", DBMasterUserPassword: %{DBMasterUserPassword}]
+                    - !Sub ["ATL_DB_POOLMAXSIZE=${DBPoolMaxSize}", DBPoolMaxSize: %{DBPoolMaxSize}]
+                    - !Sub ["ATL_DB_POOLMINSIZE=${DBPoolMinSize}", DBPoolMinSize: %{DBPoolMinSize}]
+                    - !Sub ["ATL_DB_PORT=${DBEndpointPort}", DBEndpointPort: %{RDSEndPointPort}]
+                    - !Sub ["ATL_DB_PREFERREDTESTQUERY=\"${DBPreferredTestQuery}\"", DBPreferredTestQuery: %{DBPreferredTestQuery}]
+                    - !Sub ["ATL_DB_TIMEOUT=${DBTimeout}", DBTimeout: %{DBTimeout}]
+                    - !Sub ["ATL_DB_VALIDATE=${DBValidate}", DBValidate: %{DBValidate}]
+                    # Confluence Only - !Sub ["ATL_HAZELCAST_NETWORK_AWS_IAM_REGION=${HazelcastAWSRegion}", HazelcastAWSRegion: !Ref "AWS::Region"]
+                    # Confluence Only - !Sub ["ATL_HAZELCAST_NETWORK_AWS_IAM_ROLE=${ApplicationClusterNodeRole}", ApplicationClusterNodeRole: %{ApplicationClusterNodeRole}]
+                    # Confluence Only - !Sub ["ATL_HAZELCAST_NETWORK_AWS_TAG_VALUE=${HazelcastAWSTagValue}", HazelcastAWSTagValue: !Ref "AWS::StackName"]
+                    - !Sub ["ATL_HOSTEDZONE=${HostedZone}", HostedZone: %{HostedZone}]
+                    - !Sub ["ATL_JDBC_PASSWORD='${DBPassword}'", DBPassword: %{DBPassword}]
+                    - !Sub ["ATL_JVM_HEAP=${AtlJvmHeap}", AtlJvmHeap: !If [OverrideHeap, !Ref 'JvmHeapOverride', !FindInMap [AWSInstanceType2Arch, %{ClusterNodeInstanceType}, Jvmheap]]]
+                    # TODO: Decide what to do with load balancer and CNAMEs
+                    - !Sub ["ATL_PROXY_NAME=${AtlProxyName}", AtlProxyName: !If [UseCustomDnsName, %{CustomDnsName}, !If [UseHostedZone, %{LoadBalancerCname}, &{LoadBalancerDNSName}]]]
+                    - !Sub ["ATL_TOMCAT_ACCEPTCOUNT=${TomcatAcceptCount}", TomcatAcceptCount: %{TomcatAcceptCount}]
+                    - !Sub ["ATL_TOMCAT_CONNECTIONTIMEOUT=${TomcatConnectionTimeout}", TomcatConnectionTimeout: %{TomcatConnectionTimeout}]
+                    - !Sub ["ATL_TOMCAT_CONTEXTPATH=${TomcatContextPath}", TomcatContextPath: %{TomcatContextPath}]
+                    - !Sub ["ATL_TOMCAT_DEFAULTCONNECTORPORT=${TomcatDefaultConnectorPort}", TomcatDefaultConnectorPort: %{TomcatDefaultConnectorPort}]
+                    - !Sub ["ATL_TOMCAT_ENABLELOOKUPS=${TomcatEnableLookups}", TomcatEnableLookups: %{TomcatEnableLookups}]
+                    - !Sub ["ATL_TOMCAT_MAXTHREADS=${TomcatMaxThreads}", TomcatMaxThreads: %{TomcatMaxThreads}]
+                    - !Sub ["ATL_TOMCAT_MINSPARETHREADS=${TomcatMinSpareThreads}", TomcatMinSpareThreads: %{TomcatMinSpareThreads}]
+                    - !Sub ["ATL_TOMCAT_PROTOCOL=${TomcatProtocol}", TomcatProtocol: %{TomcatProtocol}]
+                    - !Sub ["ATL_TOMCAT_PROXYPORT=${TomcatProxyPort}", TomcatProxyPort: !If [SSLScheme, 443, 80]]
+                    - !Sub ["ATL_TOMCAT_REDIRECTPORT=${TomcatRedirectPort}", TomcatRedirectPort: %{TomcatRedirectPort}]
+                    - !Sub ["ATL_TOMCAT_SCHEME=${TomcatScheme}", TomcatScheme: !If [SSLScheme, https, http]]
+                    - !Sub ["ATL_TOMCAT_SECURE=${TomcatSecure}", TomcatSecure: !If [SSLScheme, true, false]]
+                    - !Sub ["ATL_DEPLOYMENT_REPOSITORY=${DeployRepository}", DeployRepository: !Ref "DeploymentAutomationRepository"]
+                    - !Sub ["ATL_DEPLOYMENT_REPOSITORY_BRANCH=${DeployRepositoryBranch}", DeployRepositoryBranch: %{DeploymentAutomationBranch}]
+                    - !Sub ["ATL_DEPLOYMENT_REPOSITORY_PLAYBOOK=${DeployRepositoryPlaybook}", DeployRepositoryPlaybook: %{DeploymentAutomationPlaybook}]
+                    - !Sub ["ATL_DEPLOYMENT_REPOSITORY_KEYNAME=${DeployRepositoryKeyName}", DeployRepositoryKeyName: %{DeploymentAutomationKeyName}]
+                    &{AdditionalEnvVars}
+
+            /opt/atlassian/bin/clone_deployment_repo:
+              content: !Sub 
+                - |
+                  #!/bin/bash
+                  key_location=/root/.ssh/deployment_repo_key
+                  key_name="${DeploymentAutomationKeyName}"
+
+                  yum install -y git
+                  if [[ ! -z "$key_name" ]]; then
+                      # Ensure awscli is up to date
+                      yum install -y awscli jq
+                      key_val=$(aws --region=${AWS::Region} ssm get-parameters --names "$key_name" --with-decryption | jq --raw-output '.Parameters[0] .Value')
+                      echo -e $key_val > $key_location
+                      chmod 600 $key_location
+                      export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -i $key_location"
+                  else
+                      export GIT_SSH_COMMAND="ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=no"
+                  fi
+
+                  git clone "${DeploymentAutomationRepository}" -b "${DeploymentAutomationBranch}" /opt/atlassian/dc-deployments-automation/
+                - DeploymentAutomationKeyName: %{DeploymentAutomationKeyName}
+                - DeploymentAutomationRepository: %{DeploymentAutomationRepository}
+                - DeploymentAutomationBranch: %{DeploymentAutomationBranch}
+              mode: "000750"
+              owner: root
+              group: root
+
+          commands:
+            070_create_atl_dir:
+              test: "test ! -d /opt/atlassian/"
+              command: mkdir -p /opt/atlassian
+              ignoreErrors: false
+            071_install_packages:
+              command: yum install -y git python-virtualenv
+              ignoreErrors: true
+            072_clone_atl_scripts:
+              test: "test ! -d /opt/atlassian/dc-deployments-automation/"
+              command: /opt/atlassian/bin/clone_deployment_repo
+              ignoreErrors: true
+            080_run_atl_init_node:
+              command: !Sub [cd /opt/atlassian/dc-deployments-automation/ && ./bin/install-ansible && ./bin/ansible-with-atl-env inv/aws_node_local ${DeploymentAutomationPlaybook} /var/log/ansible-bootstrap.log, DeploymentAutomationPlaybook: %{DeploymentAutomationPlaybook}]
+              ignoreErrors: true
+
+    Properties:
+      AssociatePublicIpAddress: false
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: %{ClusterNodeVolumeSize}
+        - DeviceName: /dev/xvdf
+          Ebs: {}
+          NoDevice: true
+      KeyName: !If [ KeyProvided, %{KeyPairName}, &{DefaultKey} ]
+      IamInstanceProfile: %{ApplicationClusterNodeInstanceProfile}
+      ImageId:
+        !FindInMap
+          - AWSRegionArch2AMI
+          - !Ref AWS::Region
+          - !FindInMap
+              - AWSInstanceType2Arch
+              - %{ClusterNodeInstanceType}
+              - Arch
+      InstanceType: %{ClusterNodeInstanceType}
+      SecurityGroups: [%{SecurityGroup}]
+      UserData:
+        Fn::Base64:
+          !Join
+            - ""
+            -
+              - "#!/bin/bash -xe\n"
+              - "yum update -y aws-cfn-bootstrap\n"
+              - !Sub ["/opt/aws/bin/cfn-init -v --stack ${StackName}", StackName: !Ref "AWS::StackName"]
+              - !Sub [" --resource ClusterNodeLaunchConfig --region ${Region}\n", Region: !Ref "AWS::Region"]
+              - !Sub ["/opt/aws/bin/cfn-signal -e $? --stack ${StackName}", StackName: !Ref "AWS::StackName"]
+              - !Sub [" --resource ClusterNodeGroup --region ${Region}", Region: !Ref "AWS::Region"]
+  ClusterNodeScaleUpPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref ClusterNodeGroup
+      Cooldown: '600'
+      ScalingAdjustment: 1
+  ClusterNodeScaleDownPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref ClusterNodeGroup
+      Cooldown: '600'
+      ScalingAdjustment: -1
+  CPUAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Scale up if CPU > 60% for 5 minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 5
+      Threshold: 60
+      AlarmActions: [!Ref ClusterNodeScaleUpPolicy]
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref ClusterNodeGroup
+      ComparisonOperator: GreaterThanThreshold
+  CPUAlarmLow:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Scale down if CPU < 40% for 30 minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 30
+      Threshold: 40
+      AlarmActions: [!Ref ClusterNodeScaleDownPolicy]
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref ClusterNodeGroup
+      ComparisonOperator: LessThanThreshold
+
+Outputs:
+  ServiceURL:
+    Description: The URL to access this Atlassian service
+    Value: !If
+      - UseCustomDnsName
+      - !Sub
+        - "${HTTP}://${CustomDNSName}${ContextPath}"
+        - HTTP: !If [SSLScheme, 'https', 'http']
+          CustomDNSName: %{CustomDnsName}
+          ContextPath: %{TomcatContextPath}
+      - !If
+        - UseHostedZone
+        - !Sub
+          - "${HTTP}://${LBCName}${ContextPath}"
+          - HTTP: !If [SSLScheme, 'https', 'http']
+            LBCName: %{LoadBalancerCname}
+            ContextPath: %{TomcatContextPath}
+        - !Sub
+          - "${HTTP}://${LoadBalancerDNSName}${ContextPath}"
+          - HTTP: !If [SSLScheme, 'https', 'http']
+            LoadBalancerDNSName: &{LoadBalancerDNSName}
+            ContextPath: %{TomcatContextPath}
+  ClusterNodeGroup:
+    Description: The name of the auto scaling group of &{product} cluster nodes
+    Value: !Ref ClusterNodeGroup

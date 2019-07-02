@@ -1,0 +1,58 @@
+Name: "atl-asg"
+Inputs:
+  - ClusterNodeMin
+  - ClusterNodeMax
+  - MainTargetGroup
+  - SubnetIDs
+  - ElasticFileSystem
+  - AutologinCookieAge
+  - CatalinaOpts
+  - DBEngine
+  - DBEndpointAddress
+  - DBIdleTestPeriod
+  - DBMaxStatements
+  - DBMasterUserPassword
+  - DBPoolMaxSize
+  - DBPoolMinSize
+  - RDSEndPointPort
+  - DBPreferredTestQuery
+  - DBTimeout
+  - DBValidate
+  - ApplicationClusterNodeRole
+  - HostedZone
+  - DBPassword
+  - ClusterNodeInstanceType
+  - TomcatAcceptCount
+  - TomcatConnectionTimeout
+  - TomcatContextPath
+  - TomcatDefaultConnectorPort
+  - TomcatEnableLookups
+  - TomcatMaxThreads
+  - TomcatMinSpareThreads
+  - TomcatProtocol
+  - TomcatRedirectPort
+  - TomcatScheme
+  - CustomDnsName
+  - MailEnabled
+  - ProductVersion
+  - DeploymentAutomationBranch
+  - DeploymentAutomationPlaybook
+  - DeploymentAutomationKeyName
+  - KeyPairName
+  - ApplicationClusterNodeInstanceProfile
+  - SecurityGroup
+  - LoadBalancerCname
+Outputs:
+
+Variables:
+  - EFSMountAz1
+  - EFSMountAz2
+  - DB
+  # Use transformers to affect casing 
+  - product
+  - Application
+  - DefaultKey
+  - LoadBalancerDNSName
+  - AdditionalEnvVars
+
+ResourceDefinition: atl-app.cfn.yaml

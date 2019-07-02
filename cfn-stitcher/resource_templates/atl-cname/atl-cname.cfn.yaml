@@ -1,0 +1,32 @@
+Parameters:
+  HostedZone:
+    Description: ID of the private hosted zone to create CNAME for resources in
+    Type: AWS::Route53::HostedZone::Id
+
+Conditions:
+  UseHostedZone:
+    !Not [!Equals [%{HostedZone}, '']]
+
+
+Resources:
+  &{Resource}Cname:
+    Condition: UseHostedZone
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneName: %{HostedZone}
+      Comment: Route53 cname for the &{Resource}
+      Name: !Join ['.', [!Ref 'AWS::StackName', 'db', %{HostedZone}]]
+      Type: CNAME
+      TTL: '900'
+      ResourceRecords:
+        - &{TargetURL}
+
+Outputs:
+  CnameRecord:
+    # If name is supplied, it will override the name of the output in the synthesized template
+    Name: &{Resource}Cname
+    Description: The cname of the EFS
+    Value: !If
+      - UseHostedZone
+      - !Ref &{Resource}Cname
+      - !Ref &{TargetURL}

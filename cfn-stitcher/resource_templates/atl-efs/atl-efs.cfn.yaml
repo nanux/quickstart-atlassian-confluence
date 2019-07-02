@@ -1,0 +1,35 @@
+Parameters:
+  SecurityGroup:
+      Description: "Security group to apply to the EFS"
+      Type: AWS::EC2::SecurityGroup::GroupName
+  SubnetIDs:
+    Description: "Subnets to deploy EFS Mounts in. Note: You must specify 2 Availability Zones here; 
+      if more are specified, only the first 2 will be used."
+    Type: List<AWS::EC2::Subnet::Id>
+
+Resources:
+  ElasticFileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      FileSystemTags:
+        - Key: Name
+          Value: !Join [' ', [!Ref 'AWS::StackName', 'cluster shared-files']]
+        - Key: Application
+          Value: !Ref AWS::StackId
+  EFSMountAz1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref ElasticFileSystem
+      SecurityGroups: [%{SecurityGroup}]
+      SubnetId: !Select [0, !Split [ ",", %{SubnetIDs}]]
+  EFSMountAz2:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref ElasticFileSystem
+      SecurityGroups: [%{SecurityGroup}]
+      SubnetId: !Select [1, !Split [ ",", %{SubnetIDs}]]
+
+Outputs:
+  EFSEndpoint:
+    Description: "AWS Endpoint for the EFS"
+    Value: !Join ['.', [!Ref ElasticFileSystem, 'efs', !Ref 'AWS::Region', 'amazonaws.com.']]

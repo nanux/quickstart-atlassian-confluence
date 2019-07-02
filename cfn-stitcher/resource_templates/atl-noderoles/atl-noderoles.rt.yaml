@@ -1,0 +1,7 @@
+Name: "atl-noderoles"
+Variables:
+  - Application
+  - AdditionalActions
+Outputs:
+  - AppNodeRole
+ResourceDefinition: atl-noderoles.cfn.yaml

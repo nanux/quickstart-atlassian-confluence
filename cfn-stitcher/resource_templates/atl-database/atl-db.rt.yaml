@@ -1,0 +1,20 @@
+Name: "atl-db"
+Inputs:
+  - DatabaseImplementation
+  - DBSecurityGroup
+  - DBAutoMinorVersionUpgrade
+  - DBBackupRetentionPeriod
+  - DBInstanceClass
+  - DBIops
+  - DBMasterUserPassword
+  - DBMultiAZ
+  - DBAllocatedStorage
+  - DBStorageEncrypted
+  - DBStorageType
+  - QSS3BucketName
+  - QSS3KeyPrefix
+Outputs:
+  - RDSEndPointAddress
+  - RDSEndPointPort
+  - RDSEncryptionKey
+ResourceDefinition: atl-db.cfn.yaml

@@ -1,0 +1,9 @@
+Name: "atl-efs"
+Inputs:
+  - SecurityGroup
+  - HostedZone
+  - SubnetIDs
+Outputs:
+  - EFSCName
+  - EFSEndpoint
+ResourceDefinition: atl-efs.cfn.yaml

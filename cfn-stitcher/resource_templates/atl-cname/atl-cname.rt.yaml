@@ -1,0 +1,9 @@
+Name: "atl-cname"
+Inputs:
+  - HostedZone
+Variables:
+  - Resource
+  - TargetURL
+Outputs:
+  - CnameRecord
+ResourceDefinition: atl-cname.cfn.yaml

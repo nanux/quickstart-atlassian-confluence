@@ -1,0 +1,47 @@
+Parameters:
+  VpcId:
+    Description: The VPC the security group applies in
+    Type: AWS::EC2::VPC::Id
+  CidrBlock:
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x.
+    Description: CIDR block allowed to access the Atlassian product. This should be set to a trusted IP range; if you want to give public access use '0.0.0.0/0'.
+    MinLength: 9
+    MaxLength: 18
+    Type: String
+
+Resources:
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group allowing SSH and HTTP/HTTPS access
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: %{CidrBlock}
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: %{CidrBlock}
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: %{CidrBlock}
+      Tags:
+        - Key: Name
+          Value: !Join [' ', [!Ref "AWS::StackName", 'sg']]
+      VpcId: %{VpcId}
+  SecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: "-1"
+      FromPort: -1
+      ToPort: -1
+      SourceSecurityGroupId: !Ref SecurityGroup
+
+Outputs:
+  SGname:
+    Description: The name of the SecurityGroup
+    Value: !Ref SecurityGroup

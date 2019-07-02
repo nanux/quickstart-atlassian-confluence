@@ -1,0 +1,7 @@
+Name: "atl-sg"
+Inputs:
+  - VpcId
+  - CidrBlock
+Outputs:
+  - SGname
+ResourceDefinition: "atl-sg.rt.yaml"
