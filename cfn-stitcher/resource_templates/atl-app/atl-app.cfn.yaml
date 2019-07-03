@@ -627,6 +627,7 @@ Resources:
   ClusterNodeLaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
     DependsOn:
+    # This is confusing because DependsOn doesn't use !Ref. Need to rethink this as quickstart descriptor should not refer to internal resources of resource template
       - &{EFSMountAz1}
       - &{EFSMountAz2}
       - &{DB}
@@ -645,22 +646,23 @@ Resources:
                   -
                     - "ATL_PRODUCT_FAMILY=&{product}"
                     - "ATL_JDBC_DRIVER=org.postgresql.Driver"
-                    - "ATL_JDBC_DB_NAME=&{product}"
-                    - "ATL_JDBC_USER=&{product}"
+                    - "ATL_JDBC_DB_NAME=&{dbname}"
+                    - "ATL_JDBC_USER=atl&{product}"
                     - "ATL_APP_DATA_MOUNT_ENABLED=false"
-                    - "ATL_&{product}_DATA_CENTER=true"
+                    # - "ATL_&{product}_DATA_CENTER=true"
                     - "ATL_ENABLED_PRODUCTS=&{product}"
                     - "ATL_ENABLED_SHARED_HOMES="
-                    - "ATL_HAZELCAST_NETWORK_AWS_TAG_KEY=Cluster"
-                    - "ATL_HAZELCAST_NETWORK_AWS_HOST_HEADER=ec2.amazonaws.com"
+                    # - "ATL_HAZELCAST_NETWORK_AWS_TAG_KEY=Cluster"
+                    # - "ATL_HAZELCAST_NETWORK_AWS_HOST_HEADER=ec2.amazonaws.com"
                     - "ATL_RELEASE_S3_BUCKET=atlassian-software"
+                    # S3 path needs to be a variable
                     - "ATL_RELEASE_S3_PATH=releases/&{product}"
                     - "ATL_SSL_SELF_CERT_ENABLED=false"
                     - ""
                     - !Sub ["ATL_PRODUCT_VERSION=${ProductVersion}", ProductVersion: !Ref %{ProductVersion}]
                     - !Sub ["ATL_EFS_ID=${ElasticFileSystem}", ElasticFileSystem: %{ElasticFileSystem}]
                     - !If [SSLScheme, "ATL_SSL_PROXY=true", !Ref "AWS::NoValue"]
-                    - !If [UseSynchronyAutoScalingGroup, !Sub ["ATL_SYNCHRONY_SERVICE_URL=${Protocol}://${LoadBalancerName}/synchrony/v1", {Protocol: !If [SSLScheme, "https", "http"], LoadBalancerName: !If [UseCustomDnsName, %{CustomDnsName}, !If [UseHostedZone, %{LoadBalancerCname}, &{LoadBalancerDNSName}]}]], !Ref "AWS::NoValue"]
+                    # - !If [UseSynchronyAutoScalingGroup, !Sub ["ATL_SYNCHRONY_SERVICE_URL=${Protocol}://${LoadBalancerName}/synchrony/v1", {Protocol: !If [SSLScheme, "https", "http"], LoadBalancerName: !If [UseCustomDnsName, %{CustomDnsName}, !If [UseHostedZone, %{LoadBalancerCname}, &{LoadBalancerDNSName}]}]], !Ref "AWS::NoValue"]
                     - !Sub ["ATL_AWS_STACK_NAME=${StackName}", StackName: !Ref "AWS::StackName"]
                     - !Sub ["ATL_AUTOLOGIN_COOKIE_AGE=${AutologinCookieAge}", AutologinCookieAge: %{AutologinCookieAge}]
                     - !Sub ["ATL_CATALINA_OPTS=\"${CatalinaOpts} ${MailOpts}\"", { CatalinaOpts: %{CatalinaOpts}, MailOpts: !If [DisableMail, '-Datlassian.mail.senddisabled=true -Datlassian.mail.fetchdisabled=true -Datlassian.mail.popdisabled=true -D&{product}.disable.mailpolling=true', ''] }]

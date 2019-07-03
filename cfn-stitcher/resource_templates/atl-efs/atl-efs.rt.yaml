@@ -4,6 +4,8 @@ Inputs:
   - HostedZone
   - SubnetIDs
 Outputs:
-  - EFSCName
   - EFSEndpoint
+  - FileSystemID
+  - EFSMountAz1
+  - EFSMountAz2
 ResourceDefinition: atl-efs.cfn.yaml

@@ -11,6 +11,7 @@ Outputs:
   - MainTargetGroupArn
   - LoadBalancerURL
   - LoadBalancerDNSName
+  - MainListener
 Variables:
   - ListenerRules
 ResourceDefinition: atl-alb.cfn.yaml

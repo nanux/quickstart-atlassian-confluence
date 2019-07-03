@@ -39,7 +39,8 @@ Conditions:
   UseContextPath:
     !Not [!Equals [%{TomcatContextPath}, '']]
 
-LoadBalancer:
+Resources:
+  LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       LoadBalancerAttributes:
@@ -109,3 +110,6 @@ Outputs:
   LoadBalancerDNSName:
     Description: Amazon DNS address of the load balancer
     Value: !GetAtt LoadBalancer.DNSName
+  MainListener:
+    Description: The load balancer listener for this load balancer
+    Value: !Ref LoadBalancerListener

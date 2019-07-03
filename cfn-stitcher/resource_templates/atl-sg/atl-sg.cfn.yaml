@@ -1,4 +1,4 @@
-Parameters:
+Inputs:
   VpcId:
     Description: The VPC the security group applies in
     Type: AWS::EC2::VPC::Id

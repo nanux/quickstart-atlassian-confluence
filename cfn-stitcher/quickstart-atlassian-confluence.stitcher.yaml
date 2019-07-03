@@ -1,38 +1,148 @@
 ParameterDefinition:
+  Custom:
+    - Name: JvmHeapOverrideSynchrony
+      Description: A custom value for the JVM heap size Synchrony runs in
+      Type: String
+      Group: Application Tuning
+  Hoisted:
+    - Name: ConfluenceSecurityGroup.CidrBlock
+      Group: Networking
+    - Name: ConfluenceFileSystem.HostedZone
+      Group: DNS
+    - Name: ConfluenceDatabase.DatabaseImplementation
+      Group: Database
+    - Name: ConfluenceDatabase.DBAutoMinorVersionUpgrade
+      Group: Database
+    - Name: ConfluenceDatabase.DBBackupRetentionPeriod
+      Group: Database
+    - Name: ConfluenceDatabase.DBInstanceClass
+      Group: Database
+    - Name: ConfluenceDatabase.DBIops
+      Group: Database
+    - Name: ConfluenceDatabase.DBMasterUserPassword
+      Group: Database
+    - Name: ConfluenceDatabase.DBMultiAZ
+      Group: Database
+    - Name: ConfluenceDatabase.DBAllocatedStorage
+      Group: Database
+    - Name: ConfluenceDatabase.DBStorageEncrypted
+      Group: Database
+    - Name: ConfluenceDatabase.DBStorageType
+      Group: Database
+    - Name: ConfluenceDatabase.QSS3BucketName
+      Group: AWS Quick Start Configuration
+    - Name: ConfluenceDatabase.QSS3KeyPrefix
 
 Resources:
+  ConfluenceSecurityGroup:
+    ResourceTemplate: atl-sg
+    Inputs:
+      VpcId: !ImportValue ATL-VPCID
+  ConfluenceFileSystem:
+    ResourceTemplate: atl-efs
+    Inputs:
+      SecurityGroup: ConfluenceSecurityGroup.SGname
+      SubnetIDs: !ImportValue ATL-PriNets
+  ConfluenceDatabase:
+    ResourceTemplate: atl-db
+    Inputs:
+      DBSecurityGroup: ConfluenceSecurityGroup.SGname
+  ConfluenceLoadBalancer:
+    ResourceTemplate: atl-alb
+    Inputs:
+      VpcId: !ImportValue ATL-VPCID
+      SubnetIDs: !ImportValue ATL-PubNets
+      SecurityGroup: ConfluenceSecurityGroup.SGname
+      MainTargetGroupPort: ConfluenceCluster.TomcatDefaultConnectorPort
+      # I want to find a way to abstract away the tomcat part of this and just make it a health check parameter
+      TomcatContextPath: ConfluenceCluster.TomcatContextPath
+    Variables:
+      ListenerRules:
+        SynchronyListenerRule:
+          Type: AWS::ElasticLoadBalancingV2::ListenerRule
+          Condition: UseSynchronyAutoScalingGroup
+          Properties:
+            Actions:
+              - Type: forward
+                TargetGroupArn: !Ref SynchronyTargetGroup
+            Conditions:
+              - Field: path-pattern
+                Values:
+                  - '/synchrony/*'
+            ListenerArn: ConfluenceLoadBalancer.MainListener
+            Priority: 1
+
+
   ConfluenceNodeRole: 
-    Name: atl-noderoles
-      Variables:
-        Application: confluence
-        AdditionalActions:
-          - Action: ["route53:ChangeResourceRecordSets"]
-            Effect: Allow
-            Resource:
-              - "arn:aws:route53:::healthcheck/*"
-              - "arn:aws:route53:::change/*"
-              - "arn:aws:route53:::hostedzone/*"
-              - "arn:aws:route53:::delegationset/*"
-          - Action:
-            - 'route53:ListHostedZones'
-            - 'route53:ListResourceRecordSet'
-            Effect: Allow
-            Resource: ['*']
-          - Action: ['s3:ListBucket']
-            Effect: Allow
-            Resource: ['arn:aws:s3:::/aws-deployment-test/releases/confluence']
-          - Action: ['s3:Get*']
-            Effect: Allow
-            Resource: ['arn:aws:s3:::/aws-deployment-test/releases/confluence/*']
-          - Action: ['s3:ListBucket']
-            Effect: Allow
-            Resource: ['arn:aws:s3:::/atlassian-software/releases/confluence']
-          - Action: ['s3:Get*']
-            Effect: Allow
-            Resource: ['arn:aws:s3:::/atlassian-software/releases/confluence/*']
-          - Action: ['s3:ListBucket']
-            Effect: Allow
-            Resource: ['arn:aws:s3:::/atlassian-software/snapshots/confluence']
-          - Action: ['s3:Get*']
-            Effect: Allow
-            Resource: ['arn:aws:s3:::/atlassian-software/snapshots/confluence/*']"
+    ResourceTemplate: atl-noderoles
+    Variables:
+      Application: confluence
+      AdditionalActions:
+        - Action: ["route53:ChangeResourceRecordSets"]
+          Effect: Allow
+          Resource:
+            - "arn:aws:route53:::healthcheck/*"
+            - "arn:aws:route53:::change/*"
+            - "arn:aws:route53:::hostedzone/*"
+            - "arn:aws:route53:::delegationset/*"
+        - Action:
+          - 'route53:ListHostedZones'
+          - 'route53:ListResourceRecordSet'
+          Effect: Allow
+          Resource: ['*']
+        - Action: ['s3:ListBucket']
+          Effect: Allow
+          Resource: ['arn:aws:s3:::/aws-deployment-test/releases/confluence']
+        - Action: ['s3:Get*']
+          Effect: Allow
+          Resource: ['arn:aws:s3:::/aws-deployment-test/releases/confluence/*']
+        - Action: ['s3:ListBucket']
+          Effect: Allow
+          Resource: ['arn:aws:s3:::/atlassian-software/releases/confluence']
+        - Action: ['s3:Get*']
+          Effect: Allow
+          Resource: ['arn:aws:s3:::/atlassian-software/releases/confluence/*']
+        - Action: ['s3:ListBucket']
+          Effect: Allow
+          Resource: ['arn:aws:s3:::/atlassian-software/snapshots/confluence']
+        - Action: ['s3:Get*']
+          Effect: Allow
+          Resource: ['arn:aws:s3:::/atlassian-software/snapshots/confluence/*']
+  ConfluenceCluster:
+    ResourceTemplate: atl-app
+    Inputs:
+      SubnetIDs: !ImportValue ATL-PriNets
+      ElasticFileSystem: ConfluenceFileSystem.FileSystemID
+      DBEngine: ConfluenceDatabase.DatabaseImplementation
+      DBEndpointAddress: ConfluenceDatabase.RDSEndPointAddress
+      DBMasterUserPassword: ConfluenceDatabase.DBMasterUserPassword
+      RDSEndPointPort: ConfluenceDatabase.RDSEndPointPort
+      ApplicationClusterNodeRole: ConfluenceNodeRole.AppNodeRole
+      ApplicationClusterNodeInstanceProfile: ConfluenceNodeRole.AppNodeInstanceProfile
+      HostedZone: ConfluenceFileSystem.HostedZone
+      SecurityGroup: ConfluenceSecurityGroup.SGname
+      #LoadBalancerCname:  #  Need to figure out what to do with all the stupid CNAMEs
+      # Need to hoist up all the app node parameters
+    Variables:
+      product: confluence
+      DefaultKey: !ImportValue ATL-DefaultKey
+      LoadBalancerDNSName: ConfluenceLoadBalancer.LoadBalancerDNSName
+      dbname: confluence
+  SynchronyCluster:
+    ResourceTemplate: atl-app
+    Inputs:
+      SubnetIDs: !ImportValue ATL-PriNets
+      ElasticFileSystem: ConfluenceFileSystem.FileSystemID
+      DBEngine: ConfluenceDatabase.DatabaseImplementation
+      DBEndpointAddress: ConfluenceDatabase.RDSEndPointAddress
+      DBMasterUserPassword: ConfluenceDatabase.DBMasterUserPassword
+      RDSEndPointPort: ConfluenceDatabase.RDSEndPointPort
+      ApplicationClusterNodeRole: ConfluenceNodeRole.AppNodeRole
+      ApplicationClusterNodeInstanceProfile: ConfluenceNodeRole.AppNodeInstanceProfile
+      HostedZone: ConfluenceFileSystem.HostedZone
+      SecurityGroup: ConfluenceSecurityGroup.SGname
+    Variables:
+      dbname: confluence
+
+Results:
+  - ConfluenceDatabase.RDSEndPointAddress

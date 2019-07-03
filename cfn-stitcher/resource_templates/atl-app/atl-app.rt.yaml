@@ -51,9 +51,9 @@ Variables:
   - DB
   # Use transformers to affect casing 
   - product
-  - Application
   - DefaultKey
   - LoadBalancerDNSName
   - AdditionalEnvVars
+  - dbname
 
 ResourceDefinition: atl-app.cfn.yaml

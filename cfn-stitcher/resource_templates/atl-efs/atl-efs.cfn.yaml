@@ -33,3 +33,12 @@ Outputs:
   EFSEndpoint:
     Description: "AWS Endpoint for the EFS"
     Value: !Join ['.', [!Ref ElasticFileSystem, 'efs', !Ref 'AWS::Region', 'amazonaws.com.']]
+  FileSystemID:
+    Description: "Identifier for the EFS"
+    Value: !Ref ElasticFileSystem
+  EFSMountAz1:
+    Description: "Identifier of the EFS Mount Target in the first AZ"
+    Value: !Ref EFSMountAz1
+  EFSMountAz2:
+    Description: "Identifier for the EFS Mount Target in the second AZ"
+    Value: !Ref EFSMountAz2

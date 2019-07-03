@@ -32,3 +32,7 @@ Outputs:
     Name: &{Application|cap}ClusterNodeRole
     Description: The role assigned to the application nodes
     Value: !Ref &{Application|cap}ClusterNodeRole
+  AppNodeInstanceProfile:
+    Name: &{Application|cap}ClusterNodeInstanceProfile
+    Description: The instance profile containing the role
+    Value: !Ref &{Application|cap}ClusterNodeInstanceProfile
