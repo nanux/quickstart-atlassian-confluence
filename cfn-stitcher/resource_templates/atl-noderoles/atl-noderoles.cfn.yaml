@@ -1,5 +1,5 @@
 Resources:
-  &{Application}ClusterNodeRole:
+  &{Application|cap}ClusterNodeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -13,7 +13,7 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
       Path: /
       Policies:
-        - PolicyName: &{Application}ClusterNodePolicy
+        - PolicyName: &{Application|cap}ClusterNodePolicy
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -21,14 +21,14 @@ Resources:
                 Effect: Allow
                 Resource: ['*']
               &{AdditionalActions}
-  &{Application}ClusterNodeInstanceProfile:
+  &{Application|cap}ClusterNodeInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Path: /
-      Roles: [!Ref &{Application}ClusterNodeRole]
+      Roles: [!Ref &{Application|cap}ClusterNodeRole]
 
 Outputs:
   AppNodeRole:
-    Name: &{Application}ClusterNodeRole
+    Name: &{Application|cap}ClusterNodeRole
     Description: The role assigned to the application nodes
-    Value: !Ref &{Application}ClusterNodeRole
+    Value: !Ref &{Application|cap}ClusterNodeRole
