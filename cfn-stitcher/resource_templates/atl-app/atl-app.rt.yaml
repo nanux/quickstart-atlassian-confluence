@@ -1,4 +1,4 @@
-Name: "atl-asg"
+Name: "atl-app"
 Inputs:
   - ClusterNodeMin
   - ClusterNodeMax
@@ -43,7 +43,8 @@ Inputs:
   - SecurityGroup
   - LoadBalancerCname
 Outputs:
-
+  - ServiceURL
+  - ClusterNodeGroup
 Variables:
   - EFSMountAz1
   - EFSMountAz2
