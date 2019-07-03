@@ -1,0 +1,16 @@
+Name: "atl-alb"
+Inputs:
+  - AssociatePublicIpAddress
+  - SecurityGroup
+  - SubnetIDs
+  - SSLCertificateARN
+  - MainTargetGroupPort
+  - VpcId
+  - TomcatContextPath
+Outputs:
+  - MainTargetGroupArn
+  - LoadBalancerURL
+  - LoadBalancerDNSName
+Variables:
+  - ListenerRules
+ResourceDefinition: atl-alb.cfn.yaml

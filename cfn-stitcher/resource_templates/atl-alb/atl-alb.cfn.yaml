@@ -1,0 +1,111 @@
+Parameters:
+  AssociatePublicIpAddress:
+    Default: true
+    AllowedValues: [true, false]
+    ConstraintDescription: Must be 'true' or 'false'.
+    Description: 'Controls if the EC2 instances are assigned a public IP address.'
+    Type: String
+  SecurityGroup:
+    Description: "Security group to apply to the cluster nodes"
+    Type: AWS::EC2::SecurityGroup::Id
+  SubnetIDs:
+    Description: 'Subnets to deploy the application nodes in. Note: You must specify 2 subnets here; 
+      if more are specified, only the first 2 will be used.'
+    Type: List<AWS::EC2::Subnet::Id>
+  SSLCertificateARN:
+    Default: ''
+    Description: Amazon Resource Name (ARN) of your SSL certificate. If you want to use your own certificate that you generated outside of Amazon, you need to first import it to AWS Certificate Manager. After a successful import, you'll receive the ARN. If you want to create a certificate with AWS Certificate Manager (ACM certificate), you will receive the ARN after it's successfully created.
+    MinLength: 0
+    MaxLength: 90
+    Type: String
+  MainTargetGroupPort:
+    Default: 8080
+    Description: The port on which to serve the application.
+    Type: String
+  VpcId:
+    Description: The VPC the security group applies in
+    Type: AWS::EC2::VPC::Id
+  TomcatContextPath:
+    Default: ''
+    AllowedPattern: '^(\/[A-z_\-0-9\.]+)?$'
+    Description: The context path of this web application, which is matched against the beginning of each request URI to select the appropriate web application for processing. If used, must include leading "/".  See http://tomcat.apache.org/tomcat-8.0-doc/config/http.html for reference on tuning tomcat parameters.
+    Type: String
+
+Conditions:
+  UsePublicIp:
+    !Equals [%{AssociatePublicIpAddress}, 'true']
+  DoSSL:
+    !Not [!Equals [%{SSLCertificateARN}, '']]
+  UseContextPath:
+    !Not [!Equals [%{TomcatContextPath}, '']]
+
+LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: '300'
+      Scheme: !If [UsePublicIp, 'internet-facing', 'internal']
+      SecurityGroups: [%{SecurityGroup}]
+      Subnets: !Split [ ",", %{SubnetIDs}]
+      Tags:
+        - Key: Name
+          Value: !Sub ["${StackName}-LoadBalancer", StackName: !Ref 'AWS::StackName']
+        - Key: Cluster
+          Value: !Ref AWS::StackName
+  LoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      Certificates:
+        - CertificateArn:
+            !If
+              - DoSSL
+              - !Ref %{SSLCertificateARN}
+              - !Ref AWS::NoValue
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref MainTargetGroup
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: !If [DoSSL, 443, 80]
+      Protocol: !If [DoSSL, HTTPS, HTTP]
+  &{ListenerRules}
+  MainTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: %{MainTargetGroupPort}
+      Protocol: HTTP
+      VpcId: %{VpcId}
+      HealthCheckIntervalSeconds: 20
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: '200'
+      HealthCheckPath: !If [UseContextPath, !Join ['', [%{TomcatContextPath}, '/status']], '/status']
+      HealthCheckPort: %{MainTargetGroupPort}
+      HealthCheckProtocol: HTTP
+      TargetGroupAttributes:
+        - Key: stickiness.enabled
+          Value: 'true'
+        - Key: stickiness.type
+          Value: lb_cookie
+      Tags:
+        - Key: Name
+          Value: MainTargetGroup
+        - Key: Cluster
+          Value: !Ref AWS::StackName
+    DependsOn:
+      - LoadBalancer
+
+Outputs:
+  MainTargetGroupArn:
+    Description: The name of the load balancer of &{application} cluster nodes
+    Value: !Ref MainTargetGroup
+  LoadBalancerURL:
+    Description: The Load Balancer URL
+    Value: !Sub
+      - "${HTTP}://${LoadBalancerDNSName}"
+      - HTTP: !If [SSLScheme, 'https', 'http']
+        LoadBalancerDNSName: !GetAtt LoadBalancer.DNSName
+  LoadBalancerDNSName:
+    Description: Amazon DNS address of the load balancer
+    Value: !GetAtt LoadBalancer.DNSName
