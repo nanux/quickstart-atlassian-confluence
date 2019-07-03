@@ -1,0 +1,38 @@
+ParameterDefinition:
+
+Resources:
+  ConfluenceNodeRole: 
+    Name: atl-noderoles
+      Variables:
+        Application: confluence
+        AdditionalActions:
+          - Action: ["route53:ChangeResourceRecordSets"]
+            Effect: Allow
+            Resource:
+              - "arn:aws:route53:::healthcheck/*"
+              - "arn:aws:route53:::change/*"
+              - "arn:aws:route53:::hostedzone/*"
+              - "arn:aws:route53:::delegationset/*"
+          - Action:
+            - 'route53:ListHostedZones'
+            - 'route53:ListResourceRecordSet'
+            Effect: Allow
+            Resource: ['*']
+          - Action: ['s3:ListBucket']
+            Effect: Allow
+            Resource: ['arn:aws:s3:::/aws-deployment-test/releases/confluence']
+          - Action: ['s3:Get*']
+            Effect: Allow
+            Resource: ['arn:aws:s3:::/aws-deployment-test/releases/confluence/*']
+          - Action: ['s3:ListBucket']
+            Effect: Allow
+            Resource: ['arn:aws:s3:::/atlassian-software/releases/confluence']
+          - Action: ['s3:Get*']
+            Effect: Allow
+            Resource: ['arn:aws:s3:::/atlassian-software/releases/confluence/*']
+          - Action: ['s3:ListBucket']
+            Effect: Allow
+            Resource: ['arn:aws:s3:::/atlassian-software/snapshots/confluence']
+          - Action: ['s3:Get*']
+            Effect: Allow
+            Resource: ['arn:aws:s3:::/atlassian-software/snapshots/confluence/*']"
