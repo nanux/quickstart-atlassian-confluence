@@ -25,6 +25,7 @@ Metadata:
           - DeploymentAutomationPlaybook
           - DeploymentAutomationCustomParams
           - DeploymentAutomationKeyName
+          - BackupManifestURL
       - Label:
           default: Database
         Parameters:
@@ -87,6 +88,8 @@ Metadata:
     ParameterLabels:
       AutologinCookieAge:
         default: Remember Me cookie expiry
+      BackupManifestURL:
+        default: URL for backup manifest FIXME
       CatalinaOpts:
         default: Catalina options
       CidrBlock:
@@ -201,6 +204,10 @@ Parameters:
     Default: ''
     Description: Sets the Remember Me (autologin) cookie expiry length in seconds. If blank this defaults to 1 year.
     Type: String
+  BackupManifestURL:
+    Default: ""
+    Type: String
+    Description: URL for backup manifest FIXME
   CatalinaOpts:
     Default: ''
     Description: Java options that are passed to the Java virtual machine (JVM) that runs Confluence.
@@ -1203,6 +1210,7 @@ Resources:
                     - !Sub ["ATL_DEPLOYMENT_REPOSITORY_PLAYBOOK=${DeployRepositoryPlaybook}", DeployRepositoryPlaybook: !Ref "DeploymentAutomationPlaybook"]
                     - !Sub ["ATL_DEPLOYMENT_REPOSITORY_KEYNAME=${DeployRepositoryKeyName}", DeployRepositoryKeyName: !Ref "DeploymentAutomationKeyName"]
                     - !Sub ["ATL_DEPLOYMENT_REPOSITORY_CUSTOM_PARAMS='${DeployRepositoryCustomParams}'", DeployRepositoryCustomParams: !Ref "DeploymentAutomationCustomParams"]
+                    - !Sub ["ATL_BACKUP_MANIFEST_URL=${BackupManifestURL}", BackupManifestURL: !Ref "BackupManifestURL"]
 
                     - !Sub ["ATL_AWS_ENABLE_CLOUDWATCH=${EnableCW}", EnableCW: !If [EnableCloudWatch, true, false]]
                     - !Sub ["ATL_AWS_ENABLE_CLOUDWATCH_LOGS=${EnableCWLogs}", EnableCWLogs: !If [EnableCloudWatchLogs, true, false]]
@@ -1400,6 +1408,7 @@ Resources:
                     - !Sub ["ATL_DEPLOYMENT_REPOSITORY_PLAYBOOK=${DeployRepositoryPlaybook}", DeployRepositoryPlaybook: !Ref "DeploymentAutomationPlaybook"]
                     - !Sub ["ATL_DEPLOYMENT_REPOSITORY_KEYNAME=${DeployRepositoryKeyName}", DeployRepositoryKeyName: !Ref "DeploymentAutomationKeyName"]
                     - !Sub ["ATL_DEPLOYMENT_REPOSITORY_CUSTOM_PARAMS='${DeployRepositoryCustomParams}'", DeployRepositoryCustomParams: !Ref "DeploymentAutomationCustomParams"]
+                    - !Sub ["ATL_BACKUP_MANIFEST_URL=${BackupManifestURL}", BackupManifestURL: !Ref "BackupManifestURL"]
 
                     - !Sub ["ATL_AWS_ENABLE_CLOUDWATCH=${EnableCW}", EnableCW: !If [EnableCloudWatch, true, false]]
                     - !Sub ["ATL_AWS_ENABLE_CLOUDWATCH_LOGS=${EnableCWLogs}", EnableCWLogs: !If [EnableCloudWatchLogs, true, false]]
