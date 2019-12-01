@@ -41,6 +41,6 @@
   },
   {
     "ParameterKey": "DeploymentAutomationBranch",
-    "ParameterValue": "DCD-798-fix-for-pg_dump-cusstom-format"
+    "ParameterValue": "DCD-686-restore-from-manifest" 
   }
 ]
