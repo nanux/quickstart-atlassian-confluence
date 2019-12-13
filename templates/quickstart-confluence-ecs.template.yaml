@@ -463,7 +463,7 @@ Resources:
         DBMultiAZ: "false"
         QSS3BucketName: aws-quickstart
         # A hack to make the nested template fetching work
-        QSS3KeyPrefix: quickstart-atlassian-confluence
+        QSS3KeyPrefix: quickstart-atlassian-confluence/
   DBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
