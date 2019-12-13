@@ -1,0 +1,526 @@
+Parameters:
+  ClusterName:
+    Description: The name of the ECS cluster to run Confluence in
+    Type: String
+  ClusterSize:
+    Description: The number of EC2 instance to deploy to the ECS Cluster
+    Type: Number
+    Default: 2
+  DBInstanceClass:
+    Default: db.m4.large
+    AllowedValues:
+      - db.m5.large
+      - db.m5.xlarge
+      - db.m5.2xlarge
+      - db.m5.4xlarge
+      - db.m5.12xlarge
+      - db.m5.24xlarge
+      - db.m4.large
+      - db.m4.xlarge
+      - db.m4.2xlarge
+      - db.m4.4xlarge
+      - db.m4.10xlarge
+      - db.m4.16xlarge
+      - db.r5.large
+      - db.r5.xlarge
+      - db.r5.2xlarge
+      - db.r5.4xlarge
+      - db.r5.12xlarge
+      - db.r5.24xlarge
+      - db.r4.large
+      - db.r4.xlarge
+      - db.r4.2xlarge
+      - db.r4.4xlarge
+      - db.r4.8xlarge
+      - db.r4.16xlarge
+      - db.t3.medium
+      - db.t3.large
+      - db.t3.xlarge
+      - db.t3.2xlarge
+      - db.t2.medium
+      - db.t2.large
+      - db.t2.xlarge
+      - db.t2.2xlarge
+    ConstraintDescription: Must be a valid RDS instance class from the list
+    Description: RDS instance type (must be R4 family if using Amazon Aurora).
+    Type: String
+  DBMasterUserPassword:
+    AllowedPattern: ^(?=^.{8,255}$)(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])(?!.*[@/"']).*$
+    ConstraintDescription: Must be at least 8 characters and include 1 uppercase, 1 lowercase, 1 number, 1 (non / @ " ') symbol
+    Description: "Password for the master ('postgres') account. Must be at least 8 characters and include 1 uppercase, 1 lowercase, 1 number, 1 (non / @ \" ') symbol."
+    MinLength: 8
+    MaxLength: 128
+    NoEcho: true
+    Type: String
+  ECSClusterNodeInstanceType:
+    Default: c5.xlarge
+    AllowedValues:
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+      - c5.9xlarge
+      - c5.18xlarge
+      - c5d.large
+      - c5d.xlarge
+      - c5d.2xlarge
+      - c5d.4xlarge
+      - c5d.9xlarge
+      - c5d.18xlarge
+      - d2.xlarge
+      - d2.2xlarge
+      - d2.4xlarge
+      - d2.8xlarge
+      - h1.2xlarge
+      - h1.4xlarge
+      - h1.8xlarge
+      - h1.16xlarge
+      - i3.large
+      - i3.xlarge
+      - i3.2xlarge
+      - i3.4xlarge
+      - i3.8xlarge
+      - i3.16xlarge
+      - i3.metal
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m4.16xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.12xlarge
+      - m5.24xlarge
+      - m5d.large
+      - m5d.xlarge
+      - m5d.2xlarge
+      - m5d.4xlarge
+      - m5d.12xlarge
+      - m5d.24xlarge
+      - r4.large
+      - r4.xlarge
+      - r4.2xlarge
+      - r4.4xlarge
+      - r4.8xlarge
+      - r4.16xlarge
+      - r5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.12xlarge
+      - r5.24xlarge
+      - r5d.large
+      - r5d.xlarge
+      - r5d.2xlarge
+      - r5d.4xlarge
+      - r5d.12xlarge
+      - r5d.24xlarge
+      - t2.medium
+      - t2.large
+      - t2.xlarge
+      - t2.2xlarge
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - x1.16xlarge
+      - x1.32xlarge
+      - x1e.xlarge
+      - x1e.2xlarge
+      - x1e.4xlarge
+      - x1e.8xlarge
+      - x1e.16xlarge
+      - x1e.32xlarge
+      - z1d.large
+      - z1d.xlarge
+      - z1d.2xlarge
+      - z1d.3xlarge
+      - z1d.6xlarge
+      - z1d.12xlarge
+    ConstraintDescription: Must be an EC2 instance type from the selection list
+    Description: EC2 instance class for the ECS cluster nodes
+    Type: String
+
+Resources:
+  # ECS Cluster
+  ConfluenceECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref ClusterName
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+  ECSClusterNodes:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AvailabilityZones: !GetAZs us-west-2
+      LaunchConfigurationName: !Ref ECSNodeLaunchConfig
+      MaxSize: !Ref ClusterSize
+      MinSize: !Ref ClusterSize
+      Tags:
+        - Key: confluence-cluster-id
+          Value: !Sub '${AWS::StackName}-confluence-cluster'
+          PropagateAtLaunch: True
+      TargetGroupARNs:
+        - !Ref ClusterTargetGroup
+      VPCZoneIdentifier: !Split [ ",", !ImportValue ATL-PriNets]
+  ECSNodeLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      LaunchConfigurationName: ECSClusterNodeConfiguration
+      AssociatePublicIpAddress: false
+      EbsOptimized: false
+      IamInstanceProfile: ECSNodeInstanceProfile
+      # Amazon Linux AMI 2.0.20191114 x86_64 ECS HVM GP2 us-west-2
+      ImageId: ami-0fb71e703258ab7eb
+      InstanceMonitoring: true
+      InstanceType: !Ref ECSClusterNodeInstanceType
+      SecurityGroups:
+        - !Ref ECSClusterNodeSecurityGroup
+      UserData:
+        Fn::Base64:
+          !Join
+          - ""
+          -
+            - "#!/bin/bash -xe\n"
+            - "yum update -y aws-cfn-bootstrap\n"
+            - !Sub "/opt/aws/bin/cfn-init -v --stack ${AWS::StackName}"
+            - !Sub " --resource ClusterNodeLaunchConfig --region ${AWS::Region}\n"
+            - !Sub "/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName}"
+            - !Sub " --resource ClusterNodeGroup --region ${AWS::Region}"
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          files:
+            /etc/ecs/ecs.config:
+              content: !Sub "ECS_CLUSTER=${ClusterName}"
+              mode: "000644"
+              owner: root
+              group: root
+        packages:
+          yum:
+            ec2-utils: []
+            amazon-ssm-agent: []
+            amazon-efs-utils: []
+        commands:
+          010_mount_efs:
+            command: !Sub |
+                #!/bin/bash
+                mkdir /mnt/efs
+                echo '${ElasticFileSystem}:/ /mnt/efs efs defaults,_netdev 0 0' >> /etc/fstab
+                mount -a
+                mkdir /mnt/efs/confluence-home-shared
+  ECSClusterNodeSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName} group for app access via load balancer"
+      GroupDescription: Allows the load balancer to direct traffic to the application port on the ECS Cluster Node
+      VpcId: !ImportValue ATL-VPCID
+      SecurityGroupIngress:
+        - Description: Allows application access from the load balancer
+          IpProtocol: tcp
+          FromPort: 8090
+          ToPort: 8090
+          SourceSecurityGroupId: !Ref ClusterLoadBalancerSecurityGroup
+      SecurityGroupEgress:
+        - Description: Allows application access from the load balancer
+          IpProtocol: tcp
+          FromPort: 8090
+          ToPort: 8090
+          DestinationSecurityGroupId: !Ref ClusterLoadBalancerSecurityGroup
+  ECSNodeInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ec2.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+      Policies:
+        - 
+          PolicyName: "DescribeInstancesForHazelcast"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - 
+                Effect: "Allow"
+                Action: "ec2:DescribeInstances"
+                Resource: "*"
+  ECSNodeInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub '${AWS::StackName}-ECSInstanceProfile'
+      Roles:
+        - !Ref ECSNodeInstanceRole
+
+    # ECS Workload
+  ConfluenceDCTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties: 
+      Family: confluence-dc
+      ContainerDefinitions: 
+        - Cpu: 2048
+          Environment: 
+            - Name: ATL_CLUSTER_NAME
+              Value: !Sub 'Confluence-${AWS::StackName}-ecs'
+            - Name: ATL_CLUSTER_TYPE
+              Value: aws
+            - Name: ATL_HAZELCAST_NETWORK_AWS_IAM_REGION
+              Value: us-west-2
+            - Name: ATL_HAZELCAST_NETWORK_AWS_IAM_ROLE
+              Value: !Ref ECSNodeInstanceRole
+            - Name: ATL_HAZELCAST_NETWORK_AWS_TAG_KEY
+              Value: confluence-cluster-id
+            - Name: ATL_HAZELCAST_NETWORK_AWS_TAG_VALUE
+              Value: !Sub '${AWS::StackName}-confluence-cluster'
+            - Name: ATL_DB_POOLMAXSIZE
+              Value: "125"
+            - Name: ATL_DB_TYPE
+              Value: postgresql
+              # Fixme: This should be passed in as a secret but I didn't get around to it
+            - Name: ATL_JDBC_PASSWORD
+              Value: !Ref DBMasterUserPassword
+            - Name: ATL_JDBC_URL
+              # TODO Create the database in init scripts
+              Value: !Sub ['jdbc:postgresql://${DBEndpoint}:5432/confluence', DBEndpoint: !GetAtt DB.Outputs.RDSEndPointAddress]
+            - Name: ATL_JDBC_USER
+              Value: postgres
+            - Name: ATL_PRODUCT_HOME_SHARED
+              Value: /media/atl/confluence-home
+            - Name: ATL_PROXY_NAME
+              Value: !GetAtt ClusterLoadBalancer.DNSName
+            - Name: ATL_PROXY_PORT
+              Value: "80"
+            - Name: JVM_SUPPORT_RECOMMENDED_ARGS
+              Value: -Dconfluence.cluster.interface.ip=10.0.*.*
+          Essential: true
+          Image: atlassian/confluence-server:latest
+          LogConfiguration: 
+            LogDriver: awslogs
+            Options:
+              awslogs-group: '/ecs/confluence-dc-service'
+              awslogs-region: us-west-2
+              awslogs-stream-prefix: ecs
+          Memory: 4096
+          MountPoints: 
+            - ContainerPath: /media/atl/confluence-home
+              SourceVolume: confluence-shared-home
+          Name: confluence-dc-node
+          PortMappings: 
+            - ContainerPort: 8090
+              HostPort: 8090
+              Protocol: tcp
+      Cpu: "2048"
+      ExecutionRoleArn: !Ref ECSTaskExecutionRole
+      IpcMode: String
+      Memory: "4096"
+      NetworkMode: host
+      RequiresCompatibilities: 
+        - EC2
+      Volumes: 
+        - Name: confluence-shared-home
+          Host:
+            SourcePath: /mnt/efs/confluence-home-shared
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2008-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ecs-tasks.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Description: Required to run ECS tasks
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      RoleName: !Sub '${AWS::StackName}-ECSTaskExecutionRole'
+  ConfluenceService:
+    Type: AWS::ECS::Service
+    Properties: 
+      Cluster: !Ref ConfluenceECSCluster
+      DeploymentConfiguration: 
+        MaximumPercent: !Ref ClusterSize
+        MinimumHealthyPercent: 0
+      DeploymentController: 
+        Type: ECS
+      DesiredCount: !Ref ClusterSize
+      HealthCheckGracePeriodSeconds: 900
+      LaunchType: EC2
+      LoadBalancers: 
+        - ContainerName: confluence-dc-node
+          ContainerPort: 8090
+          LoadBalancerName: !Ref ClusterLoadBalancer
+          TargetGroupArn: !Ref ClusterTargetGroup
+      PlacementStrategies: 
+        - Type: spread
+          Field: attribute:ecs.availability-zone
+        - Type: spread
+          Field: instanceId
+      Role: !Ref ConfluenceServiceRole
+      SchedulingStrategy: DAEMON
+      ServiceName: confluence-dc-service
+      TaskDefinition: !Ref ConfluenceDCTaskDefinition
+  ConfluenceServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2008-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ecs.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole
+          
+  # Load Balancer
+  ClusterLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: '300'
+      Scheme: 'internet-facing'
+      SecurityGroups:
+        - !Ref ClusterLoadBalancerSecurityGroup
+      Subnets: !Split [ ",", !ImportValue ATL-PubNets]
+
+  LoadBalancerHTTPListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ClusterTargetGroup
+      LoadBalancerArn: !Ref ClusterLoadBalancer
+      Port: 80
+      Protocol: HTTP
+  ClusterTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: 8090
+      Protocol: HTTP
+      VpcId: !ImportValue ATL-VPCID
+      HealthCheckIntervalSeconds: 20
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: '200'
+      HealthCheckPath: '/status'
+      HealthCheckPort: "8090"
+      HealthCheckProtocol: HTTP
+      TargetGroupAttributes:
+        - Key: stickiness.enabled
+          Value: 'true'
+        - Key: stickiness.type
+          Value: lb_cookie
+    DependsOn:
+      - ClusterLoadBalancer
+  ClusterLoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName} group for load balancer HTTP access"
+      GroupDescription: Allows connection to the load balancer from the internet
+      VpcId: !ImportValue ATL-VPCID
+      SecurityGroupIngress:
+        - Description: Allows the internet to reach the load balancer
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - Description: Allows the internet to reach the load balancer
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  # Database
+  DB:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://aws-quickstart.s3.amazonaws.com/quickstart-atlassian-services/templates/quickstart-database-for-atlassian-services.yaml
+      Parameters:
+        DatabaseImplementation: Amazon Aurora PostgreSQL
+        DBSecurityGroup: !Ref DBSecurityGroup
+        DBAutoMinorVersionUpgrade: "true"
+        DBBackupRetentionPeriod: "1"
+        DBInstanceClass: !Ref DBInstanceClass
+        DBMasterUserPassword: !Ref DBMasterUserPassword
+        DBMultiAZ: "false"
+        QSS3BucketName: aws-quickstart
+        # A hack to make the nested template fetching work
+        QSS3KeyPrefix: quickstart-atlassian-confluence
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${AWS::StackName} group for db access from app'
+      GroupDescription: Allows the ECS cluster to access the database
+      VpcId: !ImportValue ATL-VPCID
+      SecurityGroupIngress:
+        - Description: Allows postgres traffic from the ECS Cluster
+          IpProtocol: tcp
+          FromPort: 5423
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref ECSClusterNodeSecurityGroup
+      SecurityGroupEgress:
+        - Description: Allows postgres traffic from the ECS Cluster
+          IpProtocol: tcp
+          FromPort: 5423
+          ToPort: 5432
+          DestinationSecurityGroupId: !Ref ECSClusterNodeSecurityGroup
+
+  # File System
+  ElasticFileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      FileSystemTags:
+        - Key: Name
+          Value: !Join [' ', [!Ref 'AWS::StackName', 'cluster shared-files']]
+        - Key: Application
+          Value: !Ref AWS::StackId
+  EFSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub '${AWS::StackName} group for fs access from app'
+      GroupDescription: Allows the ECS cluster to access the shared file system
+      VpcId: !ImportValue ATL-VPCID
+      SecurityGroupIngress:
+        - Description: Allows NFS traffic from the ECS Cluster
+          IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId: !Ref ECSClusterNodeSecurityGroup
+      SecurityGroupEgress:
+        - Description: Allows NFS traffic from the ECS Cluster
+          IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          DestinationSecurityGroupId: !Ref ECSClusterNodeSecurityGroup
+  EFSMountAz1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref ElasticFileSystem
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+      SubnetId: !Select [0, !Split [ ",", !ImportValue ATL-PriNets]]
+  EFSMountAz2:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref ElasticFileSystem
+      SecurityGroups:
+        - !Ref EFSSecurityGroup
+      SubnetId: !Select [1, !Split [ ",", !ImportValue ATL-PriNets]]
