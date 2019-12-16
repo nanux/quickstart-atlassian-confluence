@@ -148,6 +148,9 @@ Parameters:
     ConstraintDescription: Must be an EC2 instance type from the selection list
     Description: EC2 instance class for the ECS cluster nodes
     Type: String
+  KeypairName:
+    Description: EC2 Keypair for SSH access to your instance
+    Type: AWS::EC2::KeyPair::KeyName
 
 Resources:
   # ECS Cluster
@@ -161,28 +164,31 @@ Resources:
   ECSClusterNodes:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      AvailabilityZones: !GetAZs us-west-2
-      LaunchConfigurationName: !Ref ECSNodeLaunchConfig
-      MaxSize: !Ref ClusterSize
       MinSize: !Ref ClusterSize
+      MaxSize: !Ref ClusterSize
+      LaunchConfigurationName: !Ref ECSNodeLaunchConfig
       Tags:
+        - Key: Name
+          Value: !Sub ["${StackName} ECS Cluster Node", StackName: !Ref 'AWS::StackName']
+          PropagateAtLaunch: true
         - Key: confluence-cluster-id
           Value: !Sub '${AWS::StackName}-confluence-cluster'
           PropagateAtLaunch: True
       TargetGroupARNs:
         - !Ref ClusterTargetGroup
-      VPCZoneIdentifier: !Split [ ",", !ImportValue ATL-PriNets]
+      VPCZoneIdentifier: !Split [ ",", !ImportValue ATL-PubNets]
   ECSNodeLaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
       LaunchConfigurationName: ECSClusterNodeConfiguration
-      AssociatePublicIpAddress: false
+      AssociatePublicIpAddress: true
       EbsOptimized: false
-      IamInstanceProfile: ECSNodeInstanceProfile
-      # Amazon Linux AMI 2.0.20191114 x86_64 ECS HVM GP2 us-west-2
-      ImageId: ami-0fb71e703258ab7eb
+      IamInstanceProfile: !Ref ECSNodeInstanceProfile
+      # Amazon Linux AMI 2.0.20191114 x86_64 ECS HVM GP2 us-east-1
+      ImageId: ami-097e3d1cdb541f43e
       InstanceMonitoring: true
       InstanceType: !Ref ECSClusterNodeInstanceType
+      KeyName: !Ref KeypairName
       SecurityGroups:
         - !Ref ECSClusterNodeSecurityGroup
       UserData:
@@ -191,6 +197,7 @@ Resources:
           - ""
           -
             - "#!/bin/bash -xe\n"
+            - !Sub ["echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config\n", ECSCluster: !Ref ClusterName]
             - "yum update -y aws-cfn-bootstrap\n"
             - !Sub "/opt/aws/bin/cfn-init -v --stack ${AWS::StackName}"
             - !Sub " --resource ClusterNodeLaunchConfig --region ${AWS::Region}\n"
@@ -199,25 +206,23 @@ Resources:
     Metadata:
       AWS::CloudFormation::Init:
         config:
-          files:
-            /etc/ecs/ecs.config:
-              content: !Sub "ECS_CLUSTER=${ClusterName}"
-              mode: "000644"
-              owner: root
-              group: root
-        packages:
-          yum:
-            ec2-utils: []
-            amazon-ssm-agent: []
-            amazon-efs-utils: []
-        commands:
-          010_mount_efs:
-            command: !Sub |
-                #!/bin/bash
-                mkdir /mnt/efs
-                echo '${ElasticFileSystem}:/ /mnt/efs efs defaults,_netdev 0 0' >> /etc/fstab
-                mount -a
-                mkdir /mnt/efs/confluence-home-shared
+          packages:
+            yum:
+              ec2-utils: []
+              amazon-efs-utils: []
+          commands:
+            010_enable_ssm: |
+                  #!/bin/bash
+                  cd /tmp
+                  yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+                  systemctl start amazon-ssm-agent
+            011_mount_efs:
+              command: !Sub |
+                  #!/bin/bash
+                  mkdir /mnt/efs
+                  echo '${ElasticFileSystem}:/ /mnt/efs efs defaults,_netdev 0 0' >> /etc/fstab
+                  mount -a
+                  mkdir /mnt/efs/confluence-home-shared
   ECSClusterNodeSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -248,6 +253,7 @@ Resources:
             Action: ['sts:AssumeRole']
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
         - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
       Policies:
         - 
@@ -279,7 +285,7 @@ Resources:
             - Name: ATL_CLUSTER_TYPE
               Value: aws
             - Name: ATL_HAZELCAST_NETWORK_AWS_IAM_REGION
-              Value: us-west-2
+              Value: us-east-1
             - Name: ATL_HAZELCAST_NETWORK_AWS_IAM_ROLE
               Value: !Ref ECSNodeInstanceRole
             - Name: ATL_HAZELCAST_NETWORK_AWS_TAG_KEY
@@ -312,7 +318,7 @@ Resources:
             LogDriver: awslogs
             Options:
               awslogs-group: '/ecs/confluence-dc-service'
-              awslogs-region: us-west-2
+              awslogs-region: us-east-1
               awslogs-stream-prefix: ecs
           Memory: 4096
           MountPoints: 
@@ -325,7 +331,6 @@ Resources:
               Protocol: tcp
       Cpu: "2048"
       ExecutionRoleArn: !Ref ECSTaskExecutionRole
-      IpcMode: String
       Memory: "4096"
       NetworkMode: host
       RequiresCompatibilities: 
@@ -353,23 +358,16 @@ Resources:
     Properties: 
       Cluster: !Ref ConfluenceECSCluster
       DeploymentConfiguration: 
-        MaximumPercent: !Ref ClusterSize
+        MaximumPercent: 100
         MinimumHealthyPercent: 0
       DeploymentController: 
         Type: ECS
-      DesiredCount: !Ref ClusterSize
       HealthCheckGracePeriodSeconds: 900
       LaunchType: EC2
       LoadBalancers: 
         - ContainerName: confluence-dc-node
           ContainerPort: 8090
-          LoadBalancerName: !Ref ClusterLoadBalancer
           TargetGroupArn: !Ref ClusterTargetGroup
-      PlacementStrategies: 
-        - Type: spread
-          Field: attribute:ecs.availability-zone
-        - Type: spread
-          Field: instanceId
       Role: !Ref ConfluenceServiceRole
       SchedulingStrategy: DAEMON
       ServiceName: confluence-dc-service
@@ -454,7 +452,7 @@ Resources:
     Properties:
       TemplateURL: https://aws-quickstart.s3.amazonaws.com/quickstart-atlassian-services/templates/quickstart-database-for-atlassian-services.yaml
       Parameters:
-        DatabaseImplementation: Amazon Aurora PostgreSQL
+        DatabaseImplementation: PostgreSQL
         DBSecurityGroup: !Ref DBSecurityGroup
         DBAutoMinorVersionUpgrade: "true"
         DBBackupRetentionPeriod: "1"
@@ -516,11 +514,11 @@ Resources:
       FileSystemId: !Ref ElasticFileSystem
       SecurityGroups:
         - !Ref EFSSecurityGroup
-      SubnetId: !Select [0, !Split [ ",", !ImportValue ATL-PriNets]]
+      SubnetId: !Select [0, !Split [ ",", !ImportValue ATL-PubNets]]
   EFSMountAz2:
     Type: AWS::EFS::MountTarget
     Properties:
       FileSystemId: !Ref ElasticFileSystem
       SecurityGroups:
         - !Ref EFSSecurityGroup
-      SubnetId: !Select [1, !Split [ ",", !ImportValue ATL-PriNets]]
+      SubnetId: !Select [1, !Split [ ",", !ImportValue ATL-PubNets]]
