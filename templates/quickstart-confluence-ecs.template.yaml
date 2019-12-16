@@ -176,12 +176,12 @@ Resources:
           PropagateAtLaunch: True
       TargetGroupARNs:
         - !Ref ClusterTargetGroup
-      VPCZoneIdentifier: !Split [ ",", !ImportValue ATL-PubNets]
+      VPCZoneIdentifier: !Split [ ",", !ImportValue ATL-PriNets]
   ECSNodeLaunchConfig:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
       LaunchConfigurationName: ECSClusterNodeConfiguration
-      AssociatePublicIpAddress: true
+      AssociatePublicIpAddress: false
       EbsOptimized: false
       IamInstanceProfile: !Ref ECSNodeInstanceProfile
       # Amazon Linux AMI 2.0.20191114 x86_64 ECS HVM GP2 us-east-1
@@ -514,11 +514,11 @@ Resources:
       FileSystemId: !Ref ElasticFileSystem
       SecurityGroups:
         - !Ref EFSSecurityGroup
-      SubnetId: !Select [0, !Split [ ",", !ImportValue ATL-PubNets]]
+      SubnetId: !Select [0, !Split [ ",", !ImportValue ATL-PriNets]]
   EFSMountAz2:
     Type: AWS::EFS::MountTarget
     Properties:
       FileSystemId: !Ref ElasticFileSystem
       SecurityGroups:
         - !Ref EFSSecurityGroup
-      SubnetId: !Select [1, !Split [ ",", !ImportValue ATL-PubNets]]
+      SubnetId: !Select [1, !Split [ ",", !ImportValue ATL-PriNets]]
