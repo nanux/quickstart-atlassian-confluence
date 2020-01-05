@@ -738,6 +738,8 @@ Conditions:
     !Equals [!Ref DBEngine, "Amazon Aurora PostgreSQL"]
   DBEnginePostgres:
     !Equals [!Ref DBEngine, "PostgreSQL"]
+  IsDoingRestore:
+    !Not [!Equals [!Ref BackupManifestURL, '']]
 Mappings:
   AWSInstanceType2Arch:
     c4.large:
@@ -1121,6 +1123,9 @@ Resources:
 # Confluence node config
   ClusterNodeGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
+    ResourceSignal:
+      Count: 1
+      Timeout: !If [IsDoingRestore, PT8H, PT10M]
     Properties:
       DesiredCapacity: !Ref ClusterNodeMin
       LaunchConfigurationName: !Ref ClusterNodeLaunchConfig
