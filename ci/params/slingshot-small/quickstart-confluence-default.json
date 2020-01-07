@@ -37,6 +37,6 @@
   },
   {
     "ParameterKey": "BackupManifestURL",
-    "ParameterValue": "s3://dcd-slingshot-test/load-test-data/small/confluence_small.json"
+    "ParameterValue": "s3://dcd-slingshot-test/load-test-data/actual_small/confluence-small.json"
   }
 ]
