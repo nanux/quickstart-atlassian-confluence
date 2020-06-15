@@ -1,5 +1,9 @@
 [
   {
+    "ParameterKey": "ConfluenceVersion",
+    "ParameterValue": "7.6.0-m41"
+  },
+  {
     "ParameterKey": "DBMasterUserPassword",
     "ParameterValue": "f925dO1ry_"
   },
