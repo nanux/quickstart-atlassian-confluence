@@ -1,9 +1,5 @@
 [
     {
-        "ParameterKey": "ConfluenceVersion",
-        "ParameterValue": "7.5.1"
-    },
-    {
         "ParameterKey": "InternetFacingLoadBalancer",
         "ParameterValue": "true"
     },
