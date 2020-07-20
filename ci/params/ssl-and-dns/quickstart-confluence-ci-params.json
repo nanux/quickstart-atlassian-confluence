@@ -1,5 +1,9 @@
 [
     {
+        "ParameterKey": "DeploymentAutomationBranch",
+        "ParameterValue": "AZURE-211-add-sql-server-support-to-crow"
+    },
+    {
         "ParameterKey": "InternetFacingLoadBalancer",
         "ParameterValue": "true"
     },
