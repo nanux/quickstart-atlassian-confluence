@@ -1072,6 +1072,18 @@ Mappings:
       HVM64: ami-a2d938d3
 
 Resources:
+  SecretsManagerDBPassword:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Database password used by Confluence.
+      Name: !Join ['-', [!Ref 'AWS::StackName','DBPassword']]
+      SecretString: !Ref DBPassword
+  SecretsManagerDBMasterUserPassword:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Password for the master ('postgres') account
+      Name: !Join ['-', [!Ref 'AWS::StackName','DBMasterUserPassword']]
+      SecretString: !Ref DBPassword
   ConfluenceClusterNodeRole:
     Type: AWS::IAM::Role
     Properties:
@@ -1659,7 +1671,7 @@ Resources:
         DBBackupRetentionPeriod: "1"
         DBInstanceClass: !Ref DBInstanceClass
         DBIops: !Ref DBIops
-        DBMasterUserPassword: !Ref DBMasterUserPassword
+        DBMasterUserPassword: !Join ['',['{{resolve:secretsmanager:', !Ref SecretsManagerDBMasterUserPassword, ':SecretString}}' ]]
         DBMultiAZ: !Ref DBMultiAZ
         DBAllocatedStorage: !Ref DBStorage
         DBStorageEncrypted: !Ref DBStorageEncrypted
@@ -1667,6 +1679,12 @@ Resources:
         ExportPrefix: !Ref ExportPrefix
         QSS3BucketName: !Ref QSS3BucketName
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
+  SecretRDSInstanceAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+        SecretId: !Ref SecretsManagerDBMasterUserPassword
+        TargetId: !Ref DB
+        TargetType: AWS::RDS::DBInstance
   DBCname:
     Condition: UseHostedZone
     Type: AWS::Route53::RecordSet
@@ -1678,6 +1696,7 @@ Resources:
       TTL: '900'
       ResourceRecords:
         - !GetAtt DB.Outputs.RDSEndPointAddress
+
 # Loadbalancer
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
