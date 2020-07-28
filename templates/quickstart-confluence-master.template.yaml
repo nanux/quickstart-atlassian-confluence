@@ -1072,18 +1072,16 @@ Mappings:
       HVM64: ami-a2d938d3
 
 Resources:
-  SecretsManagerDBPassword:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Description: Database password used by Confluence.
-      Name: !Join ['-', [!Ref 'AWS::StackName','DBPassword']]
-      SecretString: !Ref DBPassword
   SecretsManagerDBMasterUserPassword:
     Type: AWS::SecretsManager::Secret
     Properties:
-      Description: Password for the master ('postgres') account
+      Description: Password for the master ('postgres') account.
       Name: !Join ['-', [!Ref 'AWS::StackName','DBMasterUserPassword']]
-      SecretString: !Ref DBPassword
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "postgres"}'
+        GenerateStringKey: "password"
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
   ConfluenceClusterNodeRole:
     Type: AWS::IAM::Role
     Properties:
@@ -1147,6 +1145,20 @@ Resources:
                   - 'ssm:PutParameter'
                 Effect: Allow
                 Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/pinned-ansible-sha"
+        - PolicyName: SecretsManagerGetAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                - 'secretsmanager:DescribeSecret'
+                - 'secretsmanager:List*'
+                Effect: Allow
+                Resource: ['*']
+              - Action:
+                - 'secretsmanager:Get*'
+                Effect: Allow
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret/${AWS::StackName}-DBMasterUserPassword"
+
   ConfluenceClusterNodeInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -1225,7 +1237,8 @@ Resources:
                     - !Sub ["ATL_DB_HOST=${DBEndpointAddress}", DBEndpointAddress: !GetAtt DB.Outputs.RDSEndPointAddress]
                     - !Sub ["ATL_DB_IDLETESTPERIOD=${DBIdleTestPeriod}", DBIdleTestPeriod: !Ref DBIdleTestPeriod]
                     - !Sub ["ATL_DB_MAXSTATEMENTS=${DBMaxStatements}", DBMaxStatements: !Ref DBMaxStatements]
-                    - !Sub ["ATL_DB_ROOT_PASSWORD='${DBMasterUserPassword}'", DBMasterUserPassword: !Ref DBMasterUserPassword]
+                    #- !Sub ["ATL_DB_ROOT_PASSWORD='${DBMasterUserPassword}'", DBMasterUserPassword: !Ref DBMasterUserPassword]
+                    - !Sub ["ATL_DB_ROOT_PASSWORD_SECRET_NAME='${DBMasterUserSecretsName}'", DBMasterUserSecretsName: !Join ['-', [!Ref 'AWS::StackName','DBMasterUserPassword']]]
                     - !Sub ["ATL_DB_POOLMAXSIZE=${DBPoolMaxSize}", DBPoolMaxSize: !Ref DBPoolMaxSize]
                     - !Sub ["ATL_DB_POOLMINSIZE=${DBPoolMinSize}", DBPoolMinSize: !Ref DBPoolMinSize]
                     - !Sub ["ATL_DB_PORT=${DBEndpointPort}", DBEndpointPort: !GetAtt DB.Outputs.RDSEndPointPort]
@@ -1236,7 +1249,8 @@ Resources:
                     - !Sub ["ATL_HAZELCAST_NETWORK_AWS_IAM_ROLE=${ConfluenceClusterNodeRole}", ConfluenceClusterNodeRole: !Ref ConfluenceClusterNodeRole]
                     - !Sub ["ATL_HAZELCAST_NETWORK_AWS_TAG_VALUE=${HazelcastAWSTagValue}", HazelcastAWSTagValue: !Ref "AWS::StackName"]
                     - !Sub ["ATL_HOSTEDZONE=${HostedZone}", HostedZone: !Ref HostedZone]
-                    - !Sub ["ATL_JDBC_PASSWORD='${DBPassword}'", DBPassword: !Ref DBPassword]
+                    #- !Sub ["ATL_JDBC_PASSWORD='${DBPassword}'", DBPassword: !Ref DBPassword]
+                    - !Sub ["ATL_DB_JDBC_PASSWORD_SECRET_NAME='${DBMasterUserSecretsName}'", DBMasterUserSecretsName: !Join ['-', [!Ref 'AWS::StackName','DBMasterUserPassword']]]
                     - !Sub ["ATL_JVM_HEAP=${AtlJvmHeap}", AtlJvmHeap: !If [OverrideHeap, !Ref 'JvmHeapOverride', !FindInMap [AWSInstanceType2Arch, !Ref ClusterNodeInstanceType, Jvmheap]]]
                     - !Sub ["ATL_PROXY_NAME=${AtlProxyName}", AtlProxyName: !If [UseCustomDnsName, !Ref CustomDnsName, !If [UseHostedZone, !Ref LoadBalancerCname, !GetAtt LoadBalancer.DNSName]]]
                     - !Sub ["ATL_TOMCAT_ACCEPTCOUNT=${TomcatAcceptCount}", TomcatAcceptCount: !Ref TomcatAcceptCount]
@@ -1661,9 +1675,9 @@ Resources:
   DB:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub
-        - https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-atlassian-services/templates/quickstart-database-for-atlassian-services.yaml
-        - QSS3Region: !If ["GovCloudCondition", "s3-us-gov-west-1", "s3"]
+      TemplateURL: https://atl-andyr-cloudformation.s3.amazonaws.com/quickstart-atlassian-services/templates/quickstart-database-for-atlassian-services.yaml
+        #- https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-atlassian-services/templates/quickstart-database-for-atlassian-services.yaml
+        #- QSS3Region: !If ["GovCloudCondition", "s3-us-gov-west-1", "s3"]
       Parameters:
         DatabaseImplementation: !Ref DBEngine
         DBSecurityGroup: !Ref SecurityGroup
@@ -1671,7 +1685,7 @@ Resources:
         DBBackupRetentionPeriod: "1"
         DBInstanceClass: !Ref DBInstanceClass
         DBIops: !Ref DBIops
-        DBMasterUserPassword: !Join ['',['{{resolve:secretsmanager:', !Ref SecretsManagerDBMasterUserPassword, ':SecretString}}' ]]
+        DBMasterUserPassword: !Join ['',['{{resolve:secretsmanager:', !Ref SecretsManagerDBMasterUserPassword, ':SecretString:password}}' ]]
         DBMultiAZ: !Ref DBMultiAZ
         DBAllocatedStorage: !Ref DBStorage
         DBStorageEncrypted: !Ref DBStorageEncrypted
@@ -1679,12 +1693,6 @@ Resources:
         ExportPrefix: !Ref ExportPrefix
         QSS3BucketName: !Ref QSS3BucketName
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
-  SecretRDSInstanceAttachment:
-    Type: AWS::SecretsManager::SecretTargetAttachment
-    Properties:
-        SecretId: !Ref SecretsManagerDBMasterUserPassword
-        TargetId: !Ref DB
-        TargetType: AWS::RDS::DBInstance
   DBCname:
     Condition: UseHostedZone
     Type: AWS::Route53::RecordSet
@@ -1696,7 +1704,12 @@ Resources:
       TTL: '900'
       ResourceRecords:
         - !GetAtt DB.Outputs.RDSEndPointAddress
-
+  SecretRDSInstanceAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+        SecretId: !Ref SecretsManagerDBMasterUserPassword
+        TargetId: !GetAtt DB.Outputs.RDSSecretTarget
+        TargetType: AWS::RDS::DBInstance  
 # Loadbalancer
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
