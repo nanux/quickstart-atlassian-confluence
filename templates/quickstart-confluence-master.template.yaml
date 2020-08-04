@@ -760,6 +760,10 @@ Conditions:
   UseBastionHost: !And
     - !Equals [!Ref BastionHostRequired, true]
     - !Condition KeyProvided
+  HasStaticDBPassword:
+    !Not [!Equals [!Ref DBPassword, ""]]
+  HasStaticDBMasterUserPassword:
+    !Not [!Equals [!Ref DBMasterUserPassword, ""]]
 Mappings:
   AWSInstanceType2Arch:
     c4.large:
@@ -1077,11 +1081,15 @@ Resources:
     Properties:
       Description: Password for the master ('postgres') account.
       Name: !Join ['-', [!Ref 'AWS::StackName','DBMasterUserPassword']]
+      SecretString: !If [HasStaticDBMasterUserPassword, !Ref DBMasterUserPassword, !Ref "AWS::NoValue"]
       GenerateSecretString:
-        SecretStringTemplate: '{"username": "postgres"}'
-        GenerateStringKey: "password"
-        PasswordLength: 16
-        ExcludeCharacters: '"@/\'
+        !If
+          - HasStaticDBMasterUserPassword
+          - !Ref DBMasterUserPassword
+          -
+           PasswordLength: 30
+           ExcludeCharacters: '"@/\'
+
   ConfluenceClusterNodeRole:
     Type: AWS::IAM::Role
     Properties:
@@ -1155,9 +1163,9 @@ Resources:
                 Effect: Allow
                 Resource: ['*']
               - Action:
-                - 'secretsmanager:Get*'
+                - 'secretsmanager:*'
                 Effect: Allow
-                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret/${AWS::StackName}-DBMasterUserPassword"
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}-DBMasterUserPassword-??????"
 
   ConfluenceClusterNodeInstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -1230,6 +1238,7 @@ Resources:
                     - !If [DoSSL, "ATL_SSL_PROXY=true", !Ref "AWS::NoValue"]
                     - !If [UseSynchronyAutoScalingGroup, !Sub ["ATL_SYNCHRONY_SERVICE_URL=${Protocol}://${LoadBalancerName}/synchrony/v1", {Protocol: !If [DoSSL, "https", "http"], LoadBalancerName: !If [UseCustomDnsName, !Ref CustomDnsName, !If [UseHostedZone, !Ref LoadBalancerCname, !If [UseCustomDnsName, !Ref CustomDnsName, !GetAtt LoadBalancer.DNSName]]]}], !Ref "AWS::NoValue"]
                     - !Sub ["ATL_AWS_STACK_NAME=${StackName}", StackName: !Ref "AWS::StackName"]
+                    - !Sub ["ATL_AWS_REGION=${RegionName}", RegionName: !Ref "AWS::Region"]
                     - !Sub ["ATL_AUTOLOGIN_COOKIE_AGE=${AutologinCookieAge}", AutologinCookieAge: !Ref AutologinCookieAge]
                     - !Sub ["ATL_CATALINA_OPTS=\"${CatalinaOpts} ${MailOpts}\"", { CatalinaOpts: !Ref CatalinaOpts, MailOpts: !If [DisableMail, '-Datlassian.mail.senddisabled=true -Datlassian.mail.fetchdisabled=true -Datlassian.mail.popdisabled=true -Dconfluence.disable.mailpolling=true', ''] }]
                     - !Sub ["ATL_DB_ACQUIREINCREMENT=${DBAcquireIncrement}", DBAcquireIncrement: !Ref DBAcquireIncrement]
@@ -1469,11 +1478,13 @@ Resources:
                     - !Sub ["ATL_PRODUCT_VERSION=${ConfluenceVersion}", ConfluenceVersion: !Ref ConfluenceVersion]
                     - !If [DoSSL, "ATL_SSL_PROXY=true", !Ref "AWS::NoValue"]
                     - !Sub ["ATL_AWS_STACK_NAME=${StackName}", StackName: !Ref "AWS::StackName"]
+                    - !Sub ["ATL_AWS_REGION=${RegionName}", RegionName: !Ref "AWS::Region"]
                     - !Sub ["ATL_CATALINA_OPTS=\"${CatalinaOpts} ${MailOpts}\"", { CatalinaOpts: !Ref CatalinaOpts, MailOpts: !If [DisableMail, '-Datlassian.mail.senddisabled=true -Datlassian.mail.fetchdisabled=true -Datlassian.mail.popdisabled=true -Dconfluence.disable.mailpolling=true', ''] }]
                     - !Sub ["ATL_DB_ENGINE=${DBEngine}", DBEngine: !If [DBEngineAurora, aurora_postgres, !If [DBEnginePostgres, rds_postgres, '']]]
                     - !Sub ["ATL_DB_HOST=${DBEndpointAddress}", DBEndpointAddress: !GetAtt DB.Outputs.RDSEndPointAddress]
                     - !Sub ["ATL_DB_PORT=${DBEndpointPort}", DBEndpointPort: !GetAtt DB.Outputs.RDSEndPointPort]
-                    - !Sub ["ATL_DB_PASSWORD='${DBMasterUserPassword}'", DBMasterUserPassword: !Ref DBMasterUserPassword]
+                    #- !Sub ["ATL_DB_PASSWORD='${DBMasterUserPassword}'", DBMasterUserPassword: !Ref DBMasterUserPassword]
+                    - !Sub ["ATL_DB_ROOT_PASSWORD_SECRET_NAME='${DBMasterUserSecretsName}'", DBMasterUserSecretsName: !Join ['-', [!Ref 'AWS::StackName','DBMasterUserPassword']]]
                     - !Sub ["ATL_HAZELCAST_NETWORK_AWS_IAM_REGION=${HazelcastAWSRegion}", HazelcastAWSRegion: !Ref "AWS::Region"]
                     - !Sub ["ATL_HAZELCAST_NETWORK_AWS_IAM_ROLE=${ConfluenceClusterNodeRole}", ConfluenceClusterNodeRole: !Ref ConfluenceClusterNodeRole]
                     - !Sub ["ATL_HAZELCAST_NETWORK_AWS_TAG_VALUE=${HazelcastAWSTagValue}", HazelcastAWSTagValue: !Ref "AWS::StackName"]
