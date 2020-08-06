@@ -1085,7 +1085,7 @@ Resources:
       GenerateSecretString:
         !If
           - HasStaticDBMasterUserPassword
-          - !Ref DBMasterUserPassword
+          - !Ref "AWS::NoValue"
           -
            PasswordLength: 30
            ExcludeCharacters: '"@/\'
