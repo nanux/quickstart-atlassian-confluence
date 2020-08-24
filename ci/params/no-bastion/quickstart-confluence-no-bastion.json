@@ -1,9 +1,5 @@
 [
   {
-    "ParameterKey": "DeploymentAutomationBranch",
-    "ParameterValue": "feature/AZURE-211-add-sql-server-support-to-crow"
-  },
-  {
     "ParameterKey": "AvailabilityZones",
     "ParameterValue": "$[taskcat_genaz_2]"
   },
@@ -44,15 +40,15 @@
     "ParameterValue": "quickstart-atlassian-confluence/"
   },
   {
-    "ParameterKey": "KeyPairName",
-    "ParameterValue": "replaced-by-taskcat-override-file"
+    "ParameterKey": "CollaborativeEditingMode",
+    "ParameterValue": "synchrony-separate-nodes"
   },
   {
     "ParameterKey": "ExportPrefix",
     "ParameterValue": "$[taskcat_random-string]"
   },
   {
-    "ParameterKey": "CollaborativeEditingMode",
-    "ParameterValue": "synchrony-separate-nodes"
+    "ParameterKey": "BastionHostRequired",
+    "ParameterValue": "false"
   }
 ]
