@@ -37,20 +37,20 @@ Metadata:
           - DBMultiAZ
           - DBPassword
           - DBStorage
-          - DBStorageEncrypted
           - DBStorageType
       - Label:
-          default: Bastion host provisioning
+          default: Security
         Parameters:
+          - CidrBlock
+          - EncryptionAtRest
+          - SSLCertificateARN
           - BastionHostRequired
           - KeyPairName
       - Label:
           default: Networking
         Parameters:
           - AvailabilityZones
-          - CidrBlock
           - InternetFacingLoadBalancer
-          - SSLCertificateARN
       - Label:
           default: DNS
         Parameters:
@@ -138,8 +138,6 @@ Metadata:
         default: DB Preferred Test Query
       DBStorage:
         default: Database storage
-      DBStorageEncrypted:
-        default: Database encryption
       DBStorageType:
         default: Database storage type
       DBTimeout:
@@ -156,6 +154,8 @@ Metadata:
         default: Custom command-line parameters for Ansible
       DeploymentAutomationKeyName:
         default: SSH keyname to use with the repository
+      EncryptionAtRest:
+        default: Database and filesystem encryption
       ExportPrefix:
         default: ASI identifier
       HostedZone:
@@ -215,6 +215,12 @@ Parameters:
     MinLength: 9
     MaxLength: 18
     Type: String
+  CloudWatchIntegration:
+    Default: "Metrics and Logs"
+    Type: String
+    Description: "Enables CloudWatch metrics with or without log gathering. If cost is an issue, you can disable this altogether."
+    AllowedValues: ["Off", "Metrics Only", "Metrics and Logs"]
+    ConstraintDescription: "Must be 'Off', 'Metrics Only', or 'Metrics and Logs'"
   ClusterNodeInstanceType:
     Default: c5.xlarge
     AllowedValues:
@@ -466,13 +472,6 @@ Parameters:
     Default: 200
     Description: Database allocated storage size, in gigabytes (GB). If you choose Provisioned IOPS, storage should be between 100 and 6144. Not used for Amazon Aurora.
     Type: Number
-  DBStorageEncrypted:
-    Default: "false"
-    AllowedValues:
-      - "true"
-      - "false"
-    Description: Whether or not to encrypt the database.
-    Type: String
   DBStorageType:
     Default: General Purpose (SSD)
     AllowedValues:
@@ -501,12 +500,13 @@ Parameters:
     Default: ""
     Type: String
     Description: Named Key Pair name to use with this repository. The key should be imported into the SSM parameter store. (Optional)
-  CloudWatchIntegration:
-    Default: "Metrics and Logs"
+  EncryptionAtRest:
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Whether or not to encrypt the database and filesystem.
     Type: String
-    Description: "Enables CloudWatch metrics with or without log gathering. If cost is an issue, you can disable this altogether."
-    AllowedValues: ["Off", "Metrics Only", "Metrics and Logs"]
-    ConstraintDescription: "Must be 'Off', 'Metrics Only', or 'Metrics and Logs'"
   ExportPrefix:
     Default: 'ATL-'
     Description:
@@ -728,8 +728,8 @@ Parameters:
     Type: String
 
 Conditions:
-  UseDatabaseEncryption:
-    !Equals [!Ref DBStorageEncrypted, true]
+  UseEncryptionAtRest:
+    !Equals [!Ref EncryptionAtRest, true]
   GovCloudCondition: !Equals
     - !Ref 'AWS::Region'
     - us-gov-west-1
@@ -800,13 +800,13 @@ Resources:
         DBPreferredTestQuery: !Ref 'DBPreferredTestQuery'
         DBAcquireIncrement: !Ref 'DBAcquireIncrement'
         DBStorage: !Ref 'DBStorage'
-        DBStorageEncrypted: !Ref 'DBStorageEncrypted'
         DBStorageType: !Ref 'DBStorageType'
         DeploymentAutomationRepository: !Ref 'DeploymentAutomationRepository'
         DeploymentAutomationBranch: !Ref 'DeploymentAutomationBranch'
         DeploymentAutomationKeyName: !Ref 'DeploymentAutomationKeyName'
         DeploymentAutomationPlaybook: !Ref 'DeploymentAutomationPlaybook'
         DeploymentAutomationCustomParams: !Ref 'DeploymentAutomationCustomParams'
+        EncryptionAtRest: !Ref 'EncryptionAtRest'
         ExportPrefix: !Ref 'ExportPrefix'
         HostedZone: !Ref 'HostedZone'
         JvmHeapOverride: !Ref 'JvmHeapOverride'
@@ -847,10 +847,10 @@ Outputs:
   DBEndpointAddress:
     Description: The Database Connection String.
     Value: !GetAtt 'ConfluenceStack.Outputs.DBEndpointAddress'
-  DBEncryptionKey:
-    Condition: UseDatabaseEncryption
-    Description: The alias of the encryption key created for RDS.
-    Value: !GetAtt 'ConfluenceStack.Outputs.DBEncryptionKey'
+  EncryptionKey:
+    Condition: UseEncryptionAtRest
+    Description: The alias of the encryption key created for RDS and EFS.
+    Value: !GetAtt 'ConfluenceStack.Outputs.EncryptionKey'
   EFSCname:
     Description: The cname of the EFS.
     Value: !GetAtt 'ConfluenceStack.Outputs.EFSCname'

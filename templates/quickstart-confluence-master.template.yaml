@@ -36,19 +36,19 @@ Metadata:
           - DBMultiAZ
           - DBPassword
           - DBStorage
-          - DBStorageEncrypted
           - DBStorageType
       - Label:
-          default: Bastion host utilization
+          default: Security
         Parameters:
+          - CidrBlock
+          - EncryptionAtRest
+          - SSLCertificateARN
           - BastionHostRequired
           - KeyPairName
       - Label:
           default: Networking
         Parameters:
-          - CidrBlock
           - InternetFacingLoadBalancer
-          - SSLCertificateARN
       - Label:
           default: DNS
         Parameters:
@@ -140,8 +140,6 @@ Metadata:
         default: DB Preferred Test Query
       DBStorage:
         default: Database storage
-      DBStorageEncrypted:
-        default: Database encryption
       DBStorageType:
         default: Database storage type
       DBTimeout:
@@ -158,6 +156,8 @@ Metadata:
         default: Custom command-line parameters for Ansible
       DeploymentAutomationKeyName:
         default: SSH keyname to use with the repository
+      EncryptionAtRest:
+        default: Database and filesystem encryption
       ExportPrefix:
         default: ASI identifier
       HostedZone:
@@ -478,13 +478,6 @@ Parameters:
     Default: 200
     Description: Database allocated storage size, in gigabytes (GB). If you choose Provisioned IOPS, storage should be between 100 and 6144. Not used for Amazon Aurora.
     Type: Number
-  DBStorageEncrypted:
-    Default: "false"
-    AllowedValues:
-      - "true"
-      - "false"
-    Description: Whether or not to encrypt the database.
-    Type: String
   DBStorageType:
     Default: General Purpose (SSD)
     AllowedValues:
@@ -513,6 +506,13 @@ Parameters:
     Default: ""
     Type: String
     Description: Named Key Pair name to use with this repository. The key should be imported into the SSM parameter store. (Optional)
+  EncryptionAtRest:
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Whether or not to encrypt the database and filesystem.
+    Type: String
   ExportPrefix:
     Default: 'ATL-'
     Description:
@@ -750,6 +750,8 @@ Conditions:
     !Not [!Equals [!Ref HostedZone, '']]
   UsePublicIp:
     !Equals [!Ref InternetFacingLoadBalancer, 'true']
+  UseEncryptionAtRest:
+    !Equals [!Ref EncryptionAtRest, 'true']
   UseSynchronyAutoScalingGroup:
     !Equals [!Ref CollaborativeEditingMode, 'synchrony-separate-nodes']
   GovCloudCondition:
@@ -761,6 +763,7 @@ Conditions:
   UseBastionHost: !And
     - !Equals [!Ref BastionHostRequired, true]
     - !Condition KeyProvided
+
 Mappings:
   AWSInstanceType2Arch:
     c4.large:
@@ -1163,10 +1166,10 @@ Resources:
           PropagateAtLaunch: true
         # NOTE: The leading COMMIT/TIMESTAMP are used to locate the position to update; see scripts/update-tags.py
         - Key: "atl:quickstart:commit-id"
-          Value: "COMMIT: 5a5830b11d9fa3db7ef0bfb9ba5f565f1e732115"
+          Value: "COMMIT: efaf9c12d98e19092e1f9943bcfcab205471276c"
           PropagateAtLaunch: true
         - Key: "atl:quickstart:timestamp"
-          Value: "TIMESTAMP: 2020-08-18T21:56:03Z"
+          Value: "TIMESTAMP: 2020-09-03T08:19:02Z"
           PropagateAtLaunch: true
 
   ClusterNodeLaunchConfig:
@@ -1309,6 +1312,7 @@ Resources:
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
+            Encrypted: !Ref EncryptionAtRest
             VolumeSize: !Ref ClusterNodeVolumeSize
         - DeviceName: /dev/xvdf
           NoDevice: true
@@ -1605,6 +1609,8 @@ Resources:
   ElasticFileSystem:
     Type: AWS::EFS::FileSystem
     Properties:
+      Encrypted: !Ref EncryptionAtRest
+      KmsKeyId: !If [UseEncryptionAtRest, !GetAtt EncryptionKey.Arn, !Ref 'AWS::NoValue']
       FileSystemTags:
         - Key: Name
           Value: !Join [' ', [!Ref 'AWS::StackName', 'cluster shared-files']]
@@ -1612,9 +1618,9 @@ Resources:
           Value: !Ref AWS::StackId
         # NOTE: The leading COMMIT/TIMESTAMP are used to locate the position to update; see scripts/update-tags.py
         - Key: "atl:quickstart:commit-id"
-          Value: "COMMIT: 5a5830b11d9fa3db7ef0bfb9ba5f565f1e732115"
+          Value: "COMMIT: efaf9c12d98e19092e1f9943bcfcab205471276c"
         - Key: "atl:quickstart:timestamp"
-          Value: "TIMESTAMP: 2020-08-18T21:56:03Z"
+          Value: "TIMESTAMP: 2020-09-03T08:19:02Z"
   EFSMountAz1:
     Type: AWS::EFS::MountTarget
     Properties:
@@ -1664,7 +1670,7 @@ Resources:
         DBMasterUserPassword: !Ref DBMasterUserPassword
         DBMultiAZ: !Ref DBMultiAZ
         DBSecurityGroup: !Ref SecurityGroup
-        DBStorageEncrypted: !Ref DBStorageEncrypted
+        DBStorageEncrypted: !Ref EncryptionAtRest
         DBStorageType: !Ref DBStorageType
         ExportPrefix: !Ref ExportPrefix
         QSS3BucketName: !Ref QSS3BucketName
@@ -1699,9 +1705,9 @@ Resources:
           Value: !Ref AWS::StackName
         # NOTE: The leading COMMIT/TIMESTAMP are used to locate the position to update; see scripts/update-tags.py
         - Key: "atl:quickstart:commit-id"
-          Value: "COMMIT: 5a5830b11d9fa3db7ef0bfb9ba5f565f1e732115"
+          Value: "COMMIT: efaf9c12d98e19092e1f9943bcfcab205471276c"
         - Key: "atl:quickstart:timestamp"
-          Value: "TIMESTAMP: 2020-08-18T21:56:03Z"
+          Value: "TIMESTAMP: 2020-09-03T08:19:02Z"
   LoadBalancerHTTPListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -1784,9 +1790,9 @@ Resources:
           Value: !Ref AWS::StackName
         # NOTE: The leading COMMIT/TIMESTAMP are used to locate the position to update; see scripts/update-tags.py
         - Key: "atl:quickstart:commit-id"
-          Value: "COMMIT: 5a5830b11d9fa3db7ef0bfb9ba5f565f1e732115"
+          Value: "COMMIT: efaf9c12d98e19092e1f9943bcfcab205471276c"
         - Key: "atl:quickstart:timestamp"
-          Value: "TIMESTAMP: 2020-08-18T21:56:03Z"
+          Value: "TIMESTAMP: 2020-09-03T08:19:02Z"
     DependsOn:
       - LoadBalancer
   SynchronyTargetGroup:
@@ -1894,9 +1900,9 @@ Resources:
           Value: !Join [' ', [!Ref "AWS::StackName", 'sg']]
         # NOTE: The leading COMMIT/TIMESTAMP are used to locate the position to update; see scripts/update-tags.py
         - Key: "atl:quickstart:commit-id"
-          Value: "COMMIT: 5a5830b11d9fa3db7ef0bfb9ba5f565f1e732115"
+          Value: "COMMIT: efaf9c12d98e19092e1f9943bcfcab205471276c"
         - Key: "atl:quickstart:timestamp"
-          Value: "TIMESTAMP: 2020-08-18T21:56:03Z"
+          Value: "TIMESTAMP: 2020-09-03T08:19:02Z"
       VpcId:
         Fn::ImportValue: !Sub "${ExportPrefix}VPCID"
   SecurityGroupIngress:
@@ -1907,6 +1913,36 @@ Resources:
       FromPort: -1
       ToPort: -1
       SourceSecurityGroupId: !Ref SecurityGroup
+  EncryptionKey:
+    Condition: UseEncryptionAtRest
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Type: AWS::KMS::Key
+    Properties:
+      KeyPolicy:
+        Version: 2012-10-17
+        Id: !Sub "${AWS::StackName}"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+            Action: 'kms:*'
+            Resource: '*'
+      Tags:
+        - Key: Name
+          Value: !Sub ["${StackName} Encryption Key", {StackName: !Ref 'AWS::StackName'}]
+        # NOTE: The leading COMMIT/TIMESTAMP are used to locate the position to update; see scripts/update-tags.py
+        - Key: "atl:quickstart:commit-id"
+          Value: "COMMIT: efaf9c12d98e19092e1f9943bcfcab205471276c"
+        - Key: "atl:quickstart:timestamp"
+          Value: "TIMESTAMP: 2020-09-03T08:19:02Z"
+  EncryptionKeyAlias:
+    Condition: UseEncryptionAtRest
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub "alias/${AWS::StackName}"
+      TargetKeyId: !Ref EncryptionKey
   AnsibleRepoPinSHA:
     Type: AWS::SSM::Parameter
     Properties:
@@ -1977,6 +2013,10 @@ Outputs:
     Export: {
       Name: !Join ['', [!Ref 'AWS::StackName', '-EFSCname']]
       }
+  EncryptionKey:
+    Condition: UseEncryptionAtRest
+    Description: The alias of the encryption key created for Amazon RDS and EFS
+    Value: !Ref EncryptionKeyAlias
   ConfluenceTargetGroupARN:
     Description: The name of the load balancer of Confluence cluster nodes
     Value: !Ref MainTargetGroup
