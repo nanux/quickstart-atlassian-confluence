@@ -973,7 +973,7 @@ Mappings:
       HVM64: ami-03c101b9aeb396b25
       HVMG2: NOT_SUPPORTED
     eu-central-1:
-      HVM64: ami-077c24ffa7fb0f400
+      HVM64: ami-075869e507c7d9041
       HVMG2: NOT_SUPPORTED
     eu-north-1:
       HVM64: ami-0b533cc3ee31130e6
