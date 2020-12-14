@@ -1163,10 +1163,10 @@ Resources:
           PropagateAtLaunch: true
         # NOTE: The leading COMMIT/TIMESTAMP are used to locate the position to update; see scripts/update-tags.py
         - Key: "atl:quickstart:commit-id"
-          Value: "COMMIT: 6e31465a9def7e8d7b70af7fbcfbd7e6b82abd8b"
+          Value: "COMMIT: 33c4d20c40db64c8297514be46b93a94287ff0f8"
           PropagateAtLaunch: true
         - Key: "atl:quickstart:timestamp"
-          Value: "TIMESTAMP: 2020-12-14T01:13:48Z"
+          Value: "TIMESTAMP: 2020-12-14T22:44:40Z"
           PropagateAtLaunch: true
 
   ClusterNodeLaunchConfig:
@@ -1612,9 +1612,9 @@ Resources:
           Value: !Ref AWS::StackId
         # NOTE: The leading COMMIT/TIMESTAMP are used to locate the position to update; see scripts/update-tags.py
         - Key: "atl:quickstart:commit-id"
-          Value: "COMMIT: 6e31465a9def7e8d7b70af7fbcfbd7e6b82abd8b"
+          Value: "COMMIT: 33c4d20c40db64c8297514be46b93a94287ff0f8"
         - Key: "atl:quickstart:timestamp"
-          Value: "TIMESTAMP: 2020-12-14T01:13:48Z"
+          Value: "TIMESTAMP: 2020-12-14T22:44:40Z"
   EFSMountAz1:
     Type: AWS::EFS::MountTarget
     Properties:
@@ -1699,9 +1699,9 @@ Resources:
           Value: !Ref AWS::StackName
         # NOTE: The leading COMMIT/TIMESTAMP are used to locate the position to update; see scripts/update-tags.py
         - Key: "atl:quickstart:commit-id"
-          Value: "COMMIT: 6e31465a9def7e8d7b70af7fbcfbd7e6b82abd8b"
+          Value: "COMMIT: 33c4d20c40db64c8297514be46b93a94287ff0f8"
         - Key: "atl:quickstart:timestamp"
-          Value: "TIMESTAMP: 2020-12-14T01:13:48Z"
+          Value: "TIMESTAMP: 2020-12-14T22:44:40Z"
   LoadBalancerHTTPListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -1784,9 +1784,9 @@ Resources:
           Value: !Ref AWS::StackName
         # NOTE: The leading COMMIT/TIMESTAMP are used to locate the position to update; see scripts/update-tags.py
         - Key: "atl:quickstart:commit-id"
-          Value: "COMMIT: 6e31465a9def7e8d7b70af7fbcfbd7e6b82abd8b"
+          Value: "COMMIT: 33c4d20c40db64c8297514be46b93a94287ff0f8"
         - Key: "atl:quickstart:timestamp"
-          Value: "TIMESTAMP: 2020-12-14T01:13:48Z"
+          Value: "TIMESTAMP: 2020-12-14T22:44:40Z"
     DependsOn:
       - LoadBalancer
   SynchronyTargetGroup:
@@ -1894,9 +1894,9 @@ Resources:
           Value: !Join [' ', [!Ref "AWS::StackName", 'sg']]
         # NOTE: The leading COMMIT/TIMESTAMP are used to locate the position to update; see scripts/update-tags.py
         - Key: "atl:quickstart:commit-id"
-          Value: "COMMIT: 6e31465a9def7e8d7b70af7fbcfbd7e6b82abd8b"
+          Value: "COMMIT: 33c4d20c40db64c8297514be46b93a94287ff0f8"
         - Key: "atl:quickstart:timestamp"
-          Value: "TIMESTAMP: 2020-12-14T01:13:48Z"
+          Value: "TIMESTAMP: 2020-12-14T22:44:40Z"
       VpcId:
         Fn::ImportValue: !Sub "${ExportPrefix}VPCID"
   SecurityGroupIngress:
