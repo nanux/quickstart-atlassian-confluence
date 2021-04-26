@@ -499,7 +499,7 @@ Parameters:
     Type: String
     Description: The deployment automation repository to use for per-node initialization. Leave this as default unless you have customizations.
   DeploymentAutomationBranch:
-    Default: "master"
+    Default: "DCD-986-use-jdk-over-installer"
     Type: String
     Description: The deployment automation repository branch to pull from.
   DeploymentAutomationPlaybook:
@@ -1164,10 +1164,10 @@ Resources:
           PropagateAtLaunch: true
         # NOTE: The leading COMMIT/TIMESTAMP are used to locate the position to update; see scripts/update-tags.py
         - Key: "atl:quickstart:commit-id"
-          Value: "COMMIT: ec423a0e5112e03efd4c9319b47a8bbde1f45dd8"
+          Value: "COMMIT: 74f8c9aff3aef4de62cc212eeeb3843d7a80040d"
           PropagateAtLaunch: true
         - Key: "atl:quickstart:timestamp"
-          Value: "TIMESTAMP: 2021-04-20T00:41:29Z"
+          Value: "TIMESTAMP: 2021-04-26T05:08:22Z"
           PropagateAtLaunch: true
 
   ClusterNodeLaunchConfig:
@@ -1613,9 +1613,9 @@ Resources:
           Value: !Ref AWS::StackId
         # NOTE: The leading COMMIT/TIMESTAMP are used to locate the position to update; see scripts/update-tags.py
         - Key: "atl:quickstart:commit-id"
-          Value: "COMMIT: ec423a0e5112e03efd4c9319b47a8bbde1f45dd8"
+          Value: "COMMIT: 74f8c9aff3aef4de62cc212eeeb3843d7a80040d"
         - Key: "atl:quickstart:timestamp"
-          Value: "TIMESTAMP: 2021-04-20T00:41:29Z"
+          Value: "TIMESTAMP: 2021-04-26T05:08:22Z"
   EFSMountAz1:
     Type: AWS::EFS::MountTarget
     Properties:
@@ -1700,9 +1700,9 @@ Resources:
           Value: !Ref AWS::StackName
         # NOTE: The leading COMMIT/TIMESTAMP are used to locate the position to update; see scripts/update-tags.py
         - Key: "atl:quickstart:commit-id"
-          Value: "COMMIT: ec423a0e5112e03efd4c9319b47a8bbde1f45dd8"
+          Value: "COMMIT: 74f8c9aff3aef4de62cc212eeeb3843d7a80040d"
         - Key: "atl:quickstart:timestamp"
-          Value: "TIMESTAMP: 2021-04-20T00:41:29Z"
+          Value: "TIMESTAMP: 2021-04-26T05:08:22Z"
   LoadBalancerHTTPListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
@@ -1785,9 +1785,9 @@ Resources:
           Value: !Ref AWS::StackName
         # NOTE: The leading COMMIT/TIMESTAMP are used to locate the position to update; see scripts/update-tags.py
         - Key: "atl:quickstart:commit-id"
-          Value: "COMMIT: ec423a0e5112e03efd4c9319b47a8bbde1f45dd8"
+          Value: "COMMIT: 74f8c9aff3aef4de62cc212eeeb3843d7a80040d"
         - Key: "atl:quickstart:timestamp"
-          Value: "TIMESTAMP: 2021-04-20T00:41:29Z"
+          Value: "TIMESTAMP: 2021-04-26T05:08:22Z"
     DependsOn:
       - LoadBalancer
   SynchronyTargetGroup:
@@ -1895,9 +1895,9 @@ Resources:
           Value: !Join [' ', [!Ref "AWS::StackName", 'sg']]
         # NOTE: The leading COMMIT/TIMESTAMP are used to locate the position to update; see scripts/update-tags.py
         - Key: "atl:quickstart:commit-id"
-          Value: "COMMIT: ec423a0e5112e03efd4c9319b47a8bbde1f45dd8"
+          Value: "COMMIT: 74f8c9aff3aef4de62cc212eeeb3843d7a80040d"
         - Key: "atl:quickstart:timestamp"
-          Value: "TIMESTAMP: 2021-04-20T00:41:29Z"
+          Value: "TIMESTAMP: 2021-04-26T05:08:22Z"
       VpcId:
         Fn::ImportValue: !Sub "${ExportPrefix}VPCID"
   SecurityGroupIngress:
