@@ -13,7 +13,7 @@ jobs:
       - name: Checkout QS CFN
         uses: actions/checkout@v2
         with:
-          repository: 'https://github.com/aws-quickstart/qs-cfn-lint-rules'
+          repository: 'aws-quickstart/qs-cfn-lint-rules'
           path: 'qs-rules'
 
       - name: Setup Cloud Formation Linter with Latest Version
