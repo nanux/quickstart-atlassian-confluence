@@ -1,7 +1,4 @@
----
-AWSTemplateFormatVersion: 2010-09-09
-Description: 'Atlassian Confluence Data Center. (qs-1qup6ra2n)'
-Metadata:
+
   AWS::CloudFormation::Interfqweqweqeace:
     ParameterGwqeqeroups:
       - Label:
