@@ -2,10 +2,10 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: 'Atlassian Confluence Data Center. (qs-1qup6ra2n)'
 Metadata:
-  AWS::CloudFormation::Interface:
-    ParameterGroups:
+  AWS::CloudFormation::Interfqweqweqeace:
+    ParameterGwqeqeroups:
       - Label:
-          default: Confluence setup
+          defqwewault: Confluencqwee setup
         Parameters:
           - CollaborativeEditingMode
           - ConfluenceVersion
