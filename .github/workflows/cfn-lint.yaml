@@ -21,4 +21,5 @@ jobs:
 
       - name: Print the Cloud Formation Linter Version & run Linter.
         run: |
-          cfn-lint -a ./qs-rules/qs_cfn_lint_rules/ templates/*
+          ls -R ./qs-rules
+          cfn-lint templates/* -a ./qs-rules/qs_cfn_lint_rules/ 
