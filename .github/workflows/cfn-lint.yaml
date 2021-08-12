@@ -9,10 +9,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      
+      - name: Checkout QS CFN
+        uses: actions/checkout@v2
+        with:
+          repository: 'https://github.com/aws-quickstart/qs-cfn-lint-rules'
+          path: 'qs-rules'
 
       - name: Setup Cloud Formation Linter with Latest Version
         uses: scottbrenner/cfn-lint-action@v2
 
       - name: Print the Cloud Formation Linter Version & run Linter.
         run: |
-          cfn-lint templates/*
+          cfn-lint -a qs-rules/qs_cfn_lint_rules templates/*
