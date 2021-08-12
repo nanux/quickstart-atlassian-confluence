@@ -17,10 +17,12 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: 'aws-quickstart/qs-cfn-lint-rules'
+          path: './qs-cfn-lint-rules'
 
       - name: Print the Cloud Formation Linter Version & run Linter.
         run: |
           cd qs-cfn-lint-rules
           pip install -e .
           cd ..
+          ls ./qs-cfn-lint-rules/qs_cfn_lint_rules/
           cfn-lint templates/* -a ./qs-cfn-lint-rules/qs_cfn_lint_rules/
