@@ -23,6 +23,4 @@ jobs:
         run: |
           cd qs-cfn-lint-rules
           pip install -e .
-          cd ..
-          ls ./qs-cfn-lint-rules/qs_cfn_lint_rules/
-          cfn-lint templates/* -a ./qs-cfn-lint-rules/qs_cfn_lint_rules/
+          cfn-lint ../templates/* -a ./qs-cfn-lint-rules/qs_cfn_lint_rules/
